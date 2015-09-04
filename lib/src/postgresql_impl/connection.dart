@@ -348,7 +348,7 @@ class ConnectionImpl implements Connection {
         _readMessage(msgType, length);
       }
 
-    } on Exception {
+    } catch (_) {
       _destroy();
       rethrow;
     }
@@ -479,7 +479,7 @@ class ConnectionImpl implements Connection {
         sql = substitute(sql, values, _typeConverter.encode);
       var query = _enqueueQuery(sql);
       return query.stream;
-    } on Exception catch (ex, st) {
+    } catch (ex, st) {
       return new Stream.fromFuture(new Future.error(ex, st));
     }
   }
@@ -491,7 +491,7 @@ class ConnectionImpl implements Connection {
 
       var query = _enqueueQuery(sql);
       return query.stream.isEmpty.then((_) => query._rowsAffected);
-    } on Exception catch (ex, st) {
+    } catch (ex, st) {
       return new Future.error(ex, st);
     }
   }
@@ -667,7 +667,7 @@ class ConnectionImpl implements Connection {
       msg.setLength();
       _socket.add(msg.buffer);
       flushing = _socket.flush();
-    } on Exception catch (e, st) {
+    } catch (e, st) {
       _messages.add(new ClientMessageImpl(
           severity: 'WARNING',
           message: 'Exception while closing connection. Closed without sending '

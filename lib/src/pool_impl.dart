@@ -445,7 +445,7 @@ class PoolImpl implements Pool {
       var row = await pconn._connection.query('select true')
                          .single.timeout(timeout);
       ok = row[0];
-    } on Exception catch (ex) { //TODO Do I really want to log warnings when the connection timeout fails.
+    } catch (ex) { //TODO Do I really want to log warnings when the connection timeout fails.
       ok = false;
       // Don't log connection test failures during shutdown.
       if (state != stopping && state != stopped) {
