@@ -148,7 +148,7 @@ class ConnectionImpl implements Connection {
           // is at least logged.
           new Future.sync(() => SecureSocket.secure(socket, onBadCertificate: (cert) => true))
             .then((s) => completer.complete(s))
-            .catchError((e) => completer.completeError(e));
+            .catchError((e, st) => completer.completeError(e, st));
         }
       });
 
@@ -156,8 +156,8 @@ class ConnectionImpl implements Connection {
       socket.add([0, 0, 0, 8, 4, 210, 22, 47]);
 
     })
-    .catchError((e) {
-      completer.completeError(e);
+    .catchError((e, st) {
+      completer.completeError(e, st);
     });
 
     return completer.future;
