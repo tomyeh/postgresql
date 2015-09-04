@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:test/test.dart';
-import 'package:postgresql/src/buffer.dart';
+import 'package:postgresql2/src/buffer.dart';
 
 smiles(int i) {
   var sb = new StringBuffer();

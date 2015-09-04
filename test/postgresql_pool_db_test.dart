@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:test/test.dart';
 import 'package:matcher/matcher.dart';
-import 'package:postgresql/pool.dart';
+import 'package:postgresql2/pool.dart';
 
 
 //_log(msg) => print(msg);

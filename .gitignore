@@ -1,3 +1,5 @@
+/.packages
+/*.iml
 /pubspec.lock
 packages
 out

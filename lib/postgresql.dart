@@ -1,7 +1,7 @@
 library postgresql;
 
 import 'dart:async';
-import 'package:postgresql/src/postgresql_impl/postgresql_impl.dart' as impl;
+import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart' as impl;
 
 /// Connect to a PostgreSQL database.
 /// 

@@ -1,6 +1,6 @@
 import 'dart:io';
-import 'package:postgresql/pool.dart';
-import 'package:postgresql/postgresql.dart';
+import 'package:postgresql2/pool.dart';
+import 'package:postgresql2/postgresql.dart';
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 

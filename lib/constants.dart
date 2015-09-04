@@ -1,8 +1,8 @@
 /// Export shorthand constants for enums at top-level.
 library postgresql.constants;
 
-import 'package:postgresql/postgresql.dart';
-import 'package:postgresql/pool.dart';
+import 'package:postgresql2/postgresql.dart';
+import 'package:postgresql2/pool.dart';
 
 const ConnectionState notConnected = ConnectionState.notConnected;
 const ConnectionState socketConnected = ConnectionState.socketConnected;

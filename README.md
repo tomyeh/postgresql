@@ -1,5 +1,9 @@
 # PostgreSQL database driver for Dart
 
+> A temporary fork of [Greg's PostgreSQL driver](https://github.com/xxgreg/postgresql)
+> using conserved substitution respecting strings and @@ operators.
+
+
 [![Build Status](https://drone.io/github.com/xxgreg/postgresql/status.png)](https://drone.io/github.com/xxgreg/postgresql/latest)
 
 ## Basic usage
@@ -144,7 +148,7 @@ it is received, or you can wait till they all arrive by calling Stream.toList().
 In server applications, a connection pool can be used to avoid the overhead of obtaining a connection for each request.
 
 ```dart
-import 'package:postgresql/pool.dart';
+import 'package:postgresql2/pool.dart';
 
 main() {
   var uri = 'postgres://username:password@localhost:5432/database';
@@ -174,7 +178,7 @@ dependencies:
 ```
 
 ```dart
-import 'package:postgresql/postgresql.dart';
+import 'package:postgresql2/postgresql.dart';
 
 void main() {
   var uri = 'postgres://testdb:password@localhost:5432/testdb';

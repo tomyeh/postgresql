@@ -1,9 +1,9 @@
 library postgresql.pool.pool_settings_impl;
 
 import 'dart:convert';
-import 'package:postgresql/pool.dart';
-import 'package:postgresql/postgresql.dart' as pg;
-import 'package:postgresql/src/duration_format.dart';
+import 'package:postgresql2/pool.dart';
+import 'package:postgresql2/postgresql.dart' as pg;
+import 'package:postgresql2/src/duration_format.dart';
 
 final PoolSettingsImpl _default = new PoolSettingsImpl();
 

@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:test/test.dart';
-import 'package:postgresql/postgresql.dart';
-import 'package:postgresql/src/postgresql_impl/postgresql_impl.dart';
-import 'package:postgresql/src/substitute.dart';
+import 'package:postgresql2/postgresql.dart';
+import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart';
+import 'package:postgresql2/src/substitute.dart';
 import 'package:yaml/yaml.dart';
 
 Settings loadSettings(){

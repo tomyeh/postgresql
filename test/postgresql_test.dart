@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:postgresql/constants.dart';
-import 'package:postgresql/postgresql.dart';
+import 'package:postgresql2/constants.dart';
+import 'package:postgresql2/postgresql.dart';
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
 

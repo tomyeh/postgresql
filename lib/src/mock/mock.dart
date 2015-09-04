@@ -4,10 +4,10 @@ library postgresql.mock;
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'package:postgresql/constants.dart';
-import 'package:postgresql/postgresql.dart' as pg;
-import 'package:postgresql/src/pool_impl.dart' as pi;
-import 'package:postgresql/src/postgresql_impl/postgresql_impl.dart';
+import 'package:postgresql2/constants.dart';
+import 'package:postgresql2/postgresql.dart' as pg;
+import 'package:postgresql2/src/pool_impl.dart' as pi;
+import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart';
 
 part 'mock_server.dart';
 part 'mock_socket_server.dart';

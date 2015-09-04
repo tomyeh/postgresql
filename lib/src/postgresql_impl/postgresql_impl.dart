@@ -5,10 +5,10 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
-import 'package:postgresql/postgresql.dart';
-import 'package:postgresql/constants.dart';
-import 'package:postgresql/src/substitute.dart';
-import 'package:postgresql/src/buffer.dart';
+import 'package:postgresql2/postgresql.dart';
+import 'package:postgresql2/constants.dart';
+import 'package:postgresql2/src/substitute.dart';
+import 'package:postgresql2/src/buffer.dart';
 
 part 'connection.dart';
 part 'constants.dart';

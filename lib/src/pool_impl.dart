@@ -4,10 +4,10 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
 import 'dart:math' as math;
-import 'package:postgresql/constants.dart';
-import 'package:postgresql/postgresql.dart' as pg;
-import 'package:postgresql/src/postgresql_impl/postgresql_impl.dart' as pgi;
-import 'package:postgresql/pool.dart';
+import 'package:postgresql2/constants.dart';
+import 'package:postgresql2/postgresql.dart' as pg;
+import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart' as pgi;
+import 'package:postgresql2/pool.dart';
 
 
 // I like my enums short and sweet, not long and typey.

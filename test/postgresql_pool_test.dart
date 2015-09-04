@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:postgresql/constants.dart';
-import 'package:postgresql/pool.dart';
-import 'package:postgresql/postgresql.dart';
-import 'package:postgresql/src/mock/mock.dart';
-import 'package:postgresql/src/pool_impl.dart';
+import 'package:postgresql2/constants.dart';
+import 'package:postgresql2/pool.dart';
+import 'package:postgresql2/postgresql.dart';
+import 'package:postgresql2/src/mock/mock.dart';
+import 'package:postgresql2/src/pool_impl.dart';
 import 'package:test/test.dart';
 
 
