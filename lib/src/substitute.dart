@@ -1,7 +1,6 @@
 library postgresql.substitute;
 
 const int _TOKEN_TEXT = 1;
-const int _TOKEN_AT = 2;
 const int _TOKEN_IDENT = 3;
 
 const int _a = 97;
@@ -13,6 +12,7 @@ const int _9 = 57;
 const int _at = 64;
 const int _colon = 58;
 const int _underscore = 95;
+const int _quot = 34, _squot = 39, _dollar = 36, _gt = 62, _backslash = 92;
 
 class _Token {
   _Token(this.type, this.value, [this.typeName]);
@@ -144,14 +144,11 @@ class _Scanner {
       if (!_r.hasMore())
         throw new ParseException('Unexpected end of input.');
 
-      // Escaped '@' character.
-      if (_r.peek() == _at) {
-        _r.read();
-        return new _Token(_TOKEN_AT, '@');
+      // '@@' or '@>' operator and '<@ '
+      if (!isIdentifier(_r.peek())) {
+        final String s = new String.fromCharCode(_r.read());
+        return new _Token(_TOKEN_TEXT, '@$s');
       }
-
-      if (!isIdentifier(_r.peek()))
-        throw new ParseException('Expected alphanumeric identifier character after "@".');
 
       // Identifier
       var ident = _r.readWhile(isIdentifier);
@@ -166,8 +163,40 @@ class _Scanner {
     }
 
     // Read plain text
-    var text = _r.readWhile((c) => c != _at);
+    var text = _readText();
     return new _Token(_TOKEN_TEXT, text);
+  }
+
+  String _readText() {
+    int esc;
+    bool backslash = false;
+    int ndollar;
+    return _r.readWhile((int c) {
+      if (backslash) {
+        backslash = false;
+      } else if (c == _backslash) {
+        backslash = true;
+
+      } else if (esc == null) {
+        switch (c) {
+          case _at:
+            return false; //found!
+          case _squot:
+          case _quot:
+          case _dollar:
+            esc = c;
+            if (c == _dollar)
+              ndollar = 3; //$tag$string$tag$
+            break;
+        }
+
+      } else if (c == esc) {
+        if (c != _dollar || --ndollar == 0)
+          esc = null;
+      }
+
+      return true;
+    });
   }
 }
 

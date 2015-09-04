@@ -15,6 +15,24 @@ main() {
   DefaultTypeConverter tc = new TypeConverter();
   
   group('Substitute by id', () {
+    test('Substitute A', () {
+      var result = substitute("""'@id\\'@id'@id"@id" """,
+          {'id': 20}, tc.encodeValue);
+      expect(result, equals(  """'@id\\'@id'20"@id" """));
+    });
+
+    test('Substitute B', () {
+      final dd = r'$d$';
+      var result = substitute("""'@id\\'@id' $dd@id$dd @id"@id" """,
+          {'id': 20}, tc.encodeValue);
+      expect(result, equals(  """'@id\\'@id' $dd@id$dd 20"@id" """));
+    });
+
+    test('Substitute C', () {
+      var result = substitute("@id@@@id@>@id", {'id': 20}, tc.encodeValue);
+      expect(result, equals(  "20@@20@>20"));
+    });
+
     test('Substitute 1', () {
       var result = substitute('@id', {'id': 20}, tc.encodeValue);
       expect(result, equals('20'));
