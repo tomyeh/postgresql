@@ -1,6 +1,7 @@
 /.packages
 /*.iml
 /pubspec.lock
+.DS_Store
 packages
 out
 *.js
