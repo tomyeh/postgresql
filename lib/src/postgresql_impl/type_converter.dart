@@ -99,7 +99,7 @@ class DefaultTypeConverter implements TypeConverter {
     }
   
     if (type == 'json' || type == 'jsonb')
-      return encodeValueToJson(value);
+      return encodeString(JSON.encode(value));
   
   //  if (type == 'bytea') {
   //    if (value is! List<int>) throwError();
@@ -142,40 +142,11 @@ class DefaultTypeConverter implements TypeConverter {
         '(${value.runtimeType}).', getConnectionName);
   }
   
-  //FIXME can probably simplify this, as in postgresql json type must take
-  // map or array at top level, not string or number. (I think???)
-  String encodeValueToJson(value, {getConnectionName()}) {
-    if (value == null)
-      return "'null'";
-  
-    if (value is Map || value is List)
-      return encodeString(JSON.encode(value));
-  
-    if (value is String)
-      return encodeString('"$value"');
-  
-    if (value is num) {
-      // These are not valid JSON numbers, so encode them as strings.
-      // TODO consider throwing an error instead.
-      if (value.isNaN) return '"nan"';
-      if (value == double.INFINITY) return '"infinity"';
-      if (value == double.NEGATIVE_INFINITY) return '"-infinity"';
-      return value.toString();
-    }
-  
-    try {
-      return encodeString(JSON.encode(value));
-    } catch (e) {
-      throw _error('Could not convert object to JSON. '
-          'No toJson() method was implemented on the object.', getConnectionName);
-    }
-  }
-  
   String encodeNumber(num n) {
     if (n.isNaN) return "'nan'";
     if (n == double.INFINITY) return "'infinity'";
     if (n == double.NEGATIVE_INFINITY) return "'-infinity'";
-    return "${n.toString()}";
+    return n.toString();
   }
   
   String encodeArray(List value) {
