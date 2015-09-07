@@ -1,9 +1,12 @@
 name: postgresql2
-version: 0.3.2
-author: Greg Lowe <greg@vis.net.nz>
+version: 0.3.2+1
+authors:
+- Greg Lowe <greg@vis.net.nz>
+- Tom Yeh <tomyeh@rikulo.org>
 description: >
   A temporary fork of Greg's PostgreSQL driver (xxgreg/postgresql)
   using conserved substitution respecting strings and @@ operators.
+  also optimizing the pool implementation aggressivly.
 homepage: https://github.com/tomyeh/postgresql
 environment:
   sdk: ">=0.8.10+6 <2.0.0"

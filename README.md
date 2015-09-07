@@ -1,7 +1,8 @@
 # PostgreSQL database driver for Dart
 
 > A temporary fork of [Greg's PostgreSQL driver](https://github.com/xxgreg/postgresql)
-> using conserved substitution respecting strings and @@ operators.
+> using conserved substitution respecting strings and @@ operators,
+> also optimizing the pool implementation aggressivly.
 
 
 [![Build Status](https://drone.io/github.com/xxgreg/postgresql/status.png)](https://drone.io/github.com/xxgreg/postgresql/latest)
