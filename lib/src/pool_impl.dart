@@ -157,6 +157,7 @@ class PoolImpl implements Pool {
       new Queue<Completer<PooledConnectionImpl>>();
 
   Timer _heartbeatTimer;
+  Duration _heartbeatDuration;
   Future _stopFuture;
   
   final StreamController<pg.Message> _messages =
@@ -198,6 +199,7 @@ class PoolImpl implements Pool {
     // Start connections in parallel.
     var futures = new Iterable.generate(settings.minConnections,
         (i) => _establishConnection());
+      //don't call ...Safely so exception will be sent to caller
 
     await Future.wait(futures)
       .timeout(settings.startTimeout, onTimeout: onTimeout);
@@ -208,10 +210,15 @@ class PoolImpl implements Pool {
         .timeout(settings.startTimeout - stopwatch.elapsed, onTimeout: onTimeout);
     }
 
-    _heartbeatTimer = 
-        new Timer.periodic(new Duration(seconds: 1), (_) => _heartbeat());
-    
     _state = running;
+
+    //heartbeat is used to detect leak and destroy idle connection
+    _heartbeatDuration = settings.leakDetectionThreshold != null ?
+        new Duration(milliseconds: math.max(1000,
+            settings.leakDetectionThreshold.inMilliseconds ~/ 3)):
+        new Duration(seconds: math.max(60,
+            settings.idleTimeout.inSeconds ~/ 3));
+    _heartbeat(); //start heartbeat
   }
   
   Future _establishConnection() async {
@@ -219,11 +226,11 @@ class PoolImpl implements Pool {
     
     // Do nothing if called while shutting down.
     if (!(_state == running || _state == PoolState.starting))
-      return new Future.value();
+      return;
     
     // This shouldn't be able to happen - but is here for robustness.
     if (_connections.length >= settings.maxConnections)
-      return new Future.value();
+      return;
     
     var pconn = new PooledConnectionImpl(this);
     pconn._state = connecting;
@@ -247,19 +254,34 @@ class PoolImpl implements Pool {
     
     _debug('Established connection. ${pconn.name}');
   }
+
+  //A safe version that catches the exception.
+  Future _establishConnectionSafely()
+  => _establishConnection()
+    .catchError((ex) {
+      _messages.add(new pg.ClientMessage(
+          severity: 'WARNING',
+          message: "Failed to establish connection",
+          exception: ex));
+    });
   
   void _heartbeat() {
     if (_state != running) return;
-    
-    for (var pconn in new List.from(_connections)) {
-      _checkIfLeaked(pconn);
-      _checkIdleTimeout(pconn);
-      
+
+    try {
+      _forEachConnection((pconn) {
+        _checkIfLeaked(pconn);
+        _checkIdleTimeout(pconn);
+      });
+
       // This shouldn't be necessary, but should help fault tolerance. 
       _processWaitQueue();
+
+      _checkIfAllConnectionsLeaked();
+
+    } finally {
+      _heartbeatTimer = new Timer(_heartbeatDuration, _heartbeat);
     }
-    
-    _checkIfAllConnectionsLeaked();
   }
 
   _checkIdleTimeout(PooledConnectionImpl pconn) {
@@ -306,13 +328,11 @@ class PoolImpl implements Pool {
             'These will be closed and new connections started.'));
       
       // Forcefully close leaked connections.
-      for (var pconn in new List.from(_connections)) {
-        _destroyConnection(pconn);
-      }
+      _forEachConnection(_destroyConnection);
       
       // Start new connections in parallel.
       for (int i = 0; i < settings.minConnections; i++) {
-        _establishConnection();
+        _establishConnectionSafely();
       }
     }
   }
@@ -436,7 +456,7 @@ class PoolImpl implements Pool {
         new Future.sync(() {
           final List<Future> ops = new List(count);
           for (int i = 0; i < count; i++) {
-            ops[i] = _establishConnection();
+            ops[i] = _establishConnectionSafely();
           }
           return Future.wait(ops);
         })
@@ -506,7 +526,7 @@ class PoolImpl implements Pool {
               'transactionState: ${conn.transactionState}.'));
 
         _destroyConnection(pconn);
-        _establishConnection();
+        _establishConnectionSafely();
 
     // If connection older than lifetime setting then destroy.
     // A random number of seconds 0-20 is added, so that all connections don't
@@ -514,7 +534,7 @@ class PoolImpl implements Pool {
     } else if (settings.maxLifetime != null
         && _isExpired(pconn._established, settings.maxLifetime + pconn._random)) {
       _destroyConnection(pconn);
-      _establishConnection();
+      _establishConnectionSafely();
 
     } else {
       pconn._released = new DateTime.now();
@@ -530,7 +550,13 @@ class PoolImpl implements Pool {
     _debug('Destroy connection. ${pconn.name}');
     if (pconn._connection != null) pconn._connection.close();
     pconn._state = connClosed;
-    _connections.remove(pconn);
+
+    //revere order since we clean up from the end
+    for (int i = _connections.length; --i >= 0;)
+      if (pconn == _connections[i]) {
+        _connections.removeAt(i);
+        break;
+      }
   }
   
   /// Depreciated. Use [stop]() instead.
@@ -550,7 +576,6 @@ class PoolImpl implements Pool {
   }
   
   Future _stop() async {
-   
     _state = stopping;
 
     if (_heartbeatTimer != null) _heartbeatTimer.cancel();
@@ -577,7 +602,7 @@ class PoolImpl implements Pool {
             message: 'Exceeded timeout while stopping pool, '
               'closing in use connections.'));        
         // _destroyConnection modifies this list, so need to make a copy.
-        new List.from(_connections).forEach(_destroyConnection);
+        _forEachConnection(_destroyConnection);
       }
     }
     _state = stopped;
@@ -585,10 +610,8 @@ class PoolImpl implements Pool {
     _debug('Stopped');
   }
 
+  void _forEachConnection(f(PooledConnectionImpl pconn)) {
+    for (int i = _connections.length; --i >= 0;) //reverse since it might be removed
+      f(_connections[i]);
+  }
 }
-
-
-
-
-
-
