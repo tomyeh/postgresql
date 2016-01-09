@@ -14,6 +14,8 @@ main() {
   DefaultTypeConverter tc = new TypeConverter();
 
   test('String escaping', () {
+    expect(tc.encodeValue("bob", "json"), equals(' E\'"bob"\' '));
+
     expect(tc.encodeValue('bob', null), equals(" E'bob' "));
     expect(tc.encodeValue('bo\nb', null), equals(r" E'bo\nb' "));
     expect(tc.encodeValue('bo\rb', null), equals(r" E'bo\rb' "));
