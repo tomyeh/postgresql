@@ -387,7 +387,7 @@ class PoolImpl implements Pool {
     
     timeoutException() => new pg.PostgresqlException(
       'Obtaining connection from pool exceeded timeout: '
-        '${settings.connectionTimeout}', 
+        '${settings.connectionTimeout}.\nAlive connections: ${_connections.length}', 
             pconn == null ? null : pconn.name);    
    
     // If there are currently no available connections then
