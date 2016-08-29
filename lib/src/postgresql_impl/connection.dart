@@ -120,10 +120,15 @@ class ConnectionImpl implements Connection {
     });
   }
 
-  static String _md5s(String s) {
-    var hash = new MD5();
-    hash.add(s.codeUnits.toList());
-    return CryptoUtils.bytesToHex(hash.close());
+  static String _md5s(String s)
+  => _bytesToHex(md5.convert(s.codeUnits.toList()).bytes);
+
+  static String _bytesToHex(List<int> bytes) {
+    var result = new StringBuffer();
+    for (var part in bytes) {
+      result.write('${part < 16 ? '0' : ''}${part.toRadixString(16)}');
+    }
+    return result.toString();
   }
 
   //TODO yuck - this needs a rewrite.
