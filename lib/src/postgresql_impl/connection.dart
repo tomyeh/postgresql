@@ -121,7 +121,7 @@ class ConnectionImpl implements Connection {
   }
 
   static String _md5s(String s)
-  => _bytesToHex(md5.convert(s.codeUnits.toList()).bytes);
+  => _bytesToHex(md5.convert(s.codeUnits).bytes);
 
   static String _bytesToHex(List<int> bytes) {
     var result = new StringBuffer();
@@ -450,7 +450,7 @@ class ConnectionImpl implements Connection {
   void _readBackendKeyData(int msgType, int length) {
     assert(_buffer.bytesAvailable >= length);
     _backendPid = _buffer.readInt32();
-    _secretKey = _buffer.readInt32();
+    _secretKey = _buffer.readInt32(); //must
   }
 
   void _readParameterStatus(int msgType, int length) {
