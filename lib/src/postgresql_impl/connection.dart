@@ -10,7 +10,7 @@ class ConnectionImpl implements Connection {
       TypeConverter typeConverter,
       String getDebugName())
     : _userName = settings.user,
-      _passwordHash = _md5s(settings.password + settings.user),
+      _password = settings.password,
       _databaseName = settings.database,
       _typeConverter = typeConverter == null
           ? new TypeConverter()
@@ -28,7 +28,7 @@ class ConnectionImpl implements Connection {
 
   final String _databaseName;
   final String _userName;
-  final String _passwordHash;
+  final String _password;
   final String _applicationName;
   final String _timeZone;
   final TypeConverter _typeConverter;
@@ -40,7 +40,7 @@ class ConnectionImpl implements Connection {
   _Query _query;
   int _msgType;
   int _msgLength;
-  int _secretKey;
+  //int _secretKey;
   bool _isUtcTimeZone = false;
   
   int _backendPid;
@@ -221,7 +221,7 @@ class ConnectionImpl implements Connection {
 
     var bytes = _buffer.readBytes(4);
     var salt = new String.fromCharCodes(bytes);
-    var md5 = 'md5' + _md5s('${_passwordHash}$salt');
+    var md5 = 'md5' + _md5s(_md5s(_password + _userName) + salt);
 
     // Build message.
     var msg = new MessageBuffer();
@@ -450,7 +450,7 @@ class ConnectionImpl implements Connection {
   void _readBackendKeyData(int msgType, int length) {
     assert(_buffer.bytesAvailable >= length);
     _backendPid = _buffer.readInt32();
-    _secretKey = _buffer.readInt32(); //must
+    /*_secretKey =*/ _buffer.readInt32();
   }
 
   void _readParameterStatus(int msgType, int length) {
