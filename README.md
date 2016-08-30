@@ -232,6 +232,6 @@ BSD
 http://www.postgresql.org/docs/9.2/static/index.html
 http://www.dartlang.org/
 
-##Who Uses
+## Who Uses
 
 * [Quire](https://quire.io) - a simple, collaborative, multi-level task management tool.
