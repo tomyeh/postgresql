@@ -9,7 +9,7 @@ description: >
   also optimizing the pool implementation aggressivly.
 homepage: https://github.com/tomyeh/postgresql
 environment:
-  sdk: ">=1.0.0 <2.0.0"
+  sdk: ">=1.8.0 <2.0.0"
 dependencies:
   crypto: ">=2.0.0 <3.0.0"
   convert: ">=1.0.0 <3.0.0"
