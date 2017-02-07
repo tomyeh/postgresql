@@ -62,7 +62,7 @@ class ConnectionImpl implements Connection {
     return _parametersView;
   }
   
-  Stream get messages => _messages.stream;
+  Stream<Message> get messages => _messages.stream as Stream<Message>;
 
   @deprecated Stream<Message> get unhandled => messages;
   
@@ -120,15 +120,9 @@ class ConnectionImpl implements Connection {
     });
   }
 
-  static String _md5s(String s)
-  => _bytesToHex(md5.convert(s.codeUnits).bytes);
-
-  static String _bytesToHex(List<int> bytes) {
-    var result = new StringBuffer();
-    for (var part in bytes) {
-      result.write('${part < 16 ? '0' : ''}${part.toRadixString(16)}');
-    }
-    return result.toString();
+  static String _md5s(String s) {
+    var digest = md5.convert(s.codeUnits.toList());
+    return hex.encode(digest.bytes);
   }
 
   //TODO yuck - this needs a rewrite.
@@ -478,12 +472,12 @@ class ConnectionImpl implements Connection {
     }
   }
 
-  Stream query(String sql, [values]) {
+  Stream<Row> query(String sql, [values]) {
     try {
       if (values != null)
         sql = substitute(sql, values, _typeConverter.encode);
       var query = _enqueueQuery(sql);
-      return query.stream;
+      return query.stream as Stream<Row>;
     } catch (ex, st) {
       return new Stream.fromFuture(new Future.error(ex, st));
     }

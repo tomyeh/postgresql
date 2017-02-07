@@ -4,7 +4,6 @@
 > using conserved substitution respecting strings and @@ operators,
 > also optimizing the pool implementation aggressivly.
 
-
 [![Build Status](https://drone.io/github.com/xxgreg/postgresql/status.png)](https://drone.io/github.com/xxgreg/postgresql/latest)
 
 ## Basic usage
