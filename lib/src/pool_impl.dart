@@ -18,10 +18,6 @@ const PooledConnectionState testing = PooledConnectionState.testing;
 const PooledConnectionState inUse = PooledConnectionState.inUse;
 const PooledConnectionState connClosed = PooledConnectionState.closed;
 
-const
-  PE_POOL_TIMEOUT = 4001,
-  PE_POOL_STOPPED = 4002;
-
 typedef Future<pg.Connection> ConnectionFactory(
     String uri,
     {Duration connectionTimeout,

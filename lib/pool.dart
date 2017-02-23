@@ -5,6 +5,11 @@ import 'package:postgresql2/postgresql.dart' as pg;
 import 'package:postgresql2/src/pool_impl.dart';
 import 'package:postgresql2/src/pool_settings_impl.dart';
 
+/// Used in [PostgresqlException.exception] when [Pool.connect] failed.
+const
+  PE_POOL_TIMEOUT = 4001,
+  PE_POOL_STOPPED = 4002;
+
 /// A connection pool for PostgreSQL database connections.
 abstract class Pool {
   
