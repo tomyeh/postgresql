@@ -18,6 +18,9 @@ const PooledConnectionState testing = PooledConnectionState.testing;
 const PooledConnectionState inUse = PooledConnectionState.inUse;
 const PooledConnectionState connClosed = PooledConnectionState.closed;
 
+const
+  PE_POOL_TIMEOUT = 4001,
+  PE_POOL_STOPPED = 4002;
 
 typedef Future<pg.Connection> ConnectionFactory(
     String uri,
@@ -345,16 +348,13 @@ class PoolImpl implements Pool {
     
     if (_state != running)
       throw new pg.PostgresqlException(
-        'Connect called while pool is not running.', null);
+        'Connect called while pool is not running.', null,
+        exception: PE_POOL_STOPPED);
     
     StackTrace stackTrace = null;
     if (settings.leakDetectionThreshold != null) {
       // Store the current stack trace for connection leak debugging.
-      try {
-        throw "Generate stacktrace.";
-      } catch (ex, st) {
-        stackTrace = st;
-      }
+      stackTrace = StackTrace.current;
     }
 
     var pconn = await _connect(settings.connectionTimeout);
@@ -379,7 +379,7 @@ class PoolImpl implements Pool {
 
     if (state == stopping || state == stopped)
       throw new pg.PostgresqlException(
-          'Connect failed as pool is stopping.', null);
+          'Connect failed as pool is stopping.', null, exception: PE_POOL_STOPPED);
     
     var stopwatch = new Stopwatch()..start();
 
@@ -388,7 +388,7 @@ class PoolImpl implements Pool {
     timeoutException() => new pg.PostgresqlException(
       'Obtaining connection from pool exceeded timeout: '
         '${settings.connectionTimeout}.\nAlive connections: ${_connections.length}', 
-            pconn == null ? null : pconn.name);    
+            pconn == null ? null : pconn.name, exception: PE_POOL_TIMEOUT);
    
     // If there are currently no available connections then
     // add the current connection request at the end of the
@@ -584,7 +584,8 @@ class PoolImpl implements Pool {
     // Send error messages to connections in wait queue.
     _waitQueue.forEach((completer) =>
       completer.completeError(new pg.PostgresqlException(
-          'Connection pool is stopping.', null)));
+          'Connection pool is stopping.', null,
+          exception: PE_POOL_STOPPED)));
     _waitQueue.clear();
     
     
