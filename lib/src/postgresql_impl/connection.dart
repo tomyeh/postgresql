@@ -75,49 +75,45 @@ class ConnectionImpl implements Connection {
        String timeZone,
        TypeConverter typeConverter,
        String getDebugName(),
-       Future<Socket> mockSocketConnect(String host, int port)}) {
+       Future<Socket> mockSocketConnect(String host, int port)}) async {
         
-    return new Future.sync(() {
-        
-      var settings = new Settings.fromUri(uri);
+    var settings = new Settings.fromUri(uri);
 
-      //FIXME Currently this timeout doesn't cancel the socket connection 
-      // process.
-      // There is a bug open about adding a real socket connect timeout
-      // parameter to Socket.connect() if this happens then start using it.
-      // http://code.google.com/p/dart/issues/detail?id=19120
-      if (connectionTimeout == null)
-        connectionTimeout = new Duration(seconds: 180);
-      
-      getDebugName = getDebugName == null ? () => 'pgconn' : getDebugName;
-      
-      var onTimeout = () => throw new PostgresqlException(
-          'Postgresql connection timed out. Timeout: $connectionTimeout.',
-          getDebugName());
-      
-      var connectFunc = mockSocketConnect == null
-          ? Socket.connect
-          : mockSocketConnect;
-      
-      Future<Socket> future = connectFunc(settings.host, settings.port)
-          .timeout(connectionTimeout, onTimeout: onTimeout);
-      
-      if (settings.requireSsl) future = _connectSsl(future);
+    //FIXME Currently this timeout doesn't cancel the socket connection 
+    // process.
+    // There is a bug open about adding a real socket connect timeout
+    // parameter to Socket.connect() if this happens then start using it.
+    // http://code.google.com/p/dart/issues/detail?id=19120
+    if (connectionTimeout == null)
+      connectionTimeout = new Duration(seconds: 180);
+    
+    getDebugName = getDebugName == null ? () => 'pgconn' : getDebugName;
+    
+    var onTimeout = () => throw new PostgresqlException(
+        'Postgresql connection timed out. Timeout: $connectionTimeout.',
+        getDebugName());
+    
+    var connectFunc = mockSocketConnect == null
+        ? Socket.connect
+        : mockSocketConnect;
+    
+    Future<Socket> future = connectFunc(settings.host, settings.port)
+        .timeout(connectionTimeout, onTimeout: onTimeout);
+    
+    if (settings.requireSsl) future = _connectSsl(future);
 
-      return future.timeout(connectionTimeout, onTimeout: onTimeout).then((socket) {
-        
-        var conn = new ConnectionImpl._private(socket, settings,
-            applicationName, timeZone, typeConverter, getDebugName);        
-        
-        socket.listen(conn._readData, 
-            onError: conn._handleSocketError,
-            onDone: conn._handleSocketClosed);
-        
-        conn._state = socketConnected;
-        conn._sendStartupMessage();
-        return conn._connected.future;
-      });
-    });
+    final socket = await future.timeout(connectionTimeout, onTimeout: onTimeout);
+      
+    var conn = new ConnectionImpl._private(socket, settings,
+        applicationName, timeZone, typeConverter, getDebugName);
+    
+    socket.listen(conn._readData,
+        onError: conn._handleSocketError,
+        onDone: conn._handleSocketClosed);
+    
+    conn._state = socketConnected;
+    conn._sendStartupMessage();
+    return conn._connected.future;
   }
 
   static String _md5s(String s) {
@@ -145,9 +141,9 @@ class ConnectionImpl implements Connection {
           // expected behaviour.
           // TODO consider adding a warning if certificate is invalid so that it
           // is at least logged.
-          new Future.sync(() => SecureSocket.secure(socket, onBadCertificate: (cert) => true))
-            .then((s) => completer.complete(s))
-            .catchError((e, st) => completer.completeError(e, st));
+          SecureSocket.secure(socket, onBadCertificate: (cert) => true)
+            .then(completer.complete)
+            .catchError(completer.completeError);
         }
       });
 
@@ -155,9 +151,7 @@ class ConnectionImpl implements Connection {
       socket.add([0, 0, 0, 8, 4, 210, 22, 47]);
 
     })
-    .catchError((e, st) {
-      completer.completeError(e, st);
-    });
+    .catchError(completer.completeError);
 
     return completer.future;
   }
@@ -255,7 +249,7 @@ class ConnectionImpl implements Connection {
         _connected.complete(this);
       }
 
-      new Future(() => _processSendQueryQueue());
+      Timer.run(_processSendQueryQueue);
 
     } else {
       _destroy();
@@ -483,19 +477,16 @@ class ConnectionImpl implements Connection {
     }
   }
 
-  Future<int> execute(String sql, [values]) {
-    try {
-      if (values != null)
-        sql = substitute(sql, values, _typeConverter.encode);
+  Future<int> execute(String sql, [values]) async {
+    if (values != null)
+      sql = substitute(sql, values, _typeConverter.encode);
 
-      var query = _enqueueQuery(sql);
-      return query.stream.isEmpty.then((_) => query._rowsAffected);
-    } catch (ex, st) {
-      return new Future.error(ex, st);
-    }
+    var query = _enqueueQuery(sql);
+    await query.stream.isEmpty;
+    return query._rowsAffected;
   }
 
-  Future runInTransaction(Future operation(), [Isolation isolation = readCommitted]) {
+  Future runInTransaction(Future operation(), [Isolation isolation = readCommitted]) async {
 
     var begin = 'begin';
     if (isolation == repeatableRead)
@@ -503,13 +494,14 @@ class ConnectionImpl implements Connection {
     else if (isolation == serializable)
       begin = 'begin; set transaction isolation level serializable;';
 
-    return execute(begin)
-      .then((_) => operation())
-      .then((_) => execute('commit'))
-      .catchError((e, st) {
-        return execute('rollback')
-          .then((_) => new Future.error(e, st));
-      });
+    try {
+      await execute(begin);
+      await operation();
+      await execute('commit');
+    } catch (_) {
+      await execute('rollback');
+      rethrow;
+    }
   }
 
   _Query _enqueueQuery(String sql) {
@@ -529,7 +521,7 @@ class ConnectionImpl implements Connection {
     var query = new _Query(sql);
     _sendQueryQueue.addLast(query);
 
-    new Future(() => _processSendQueryQueue());
+    Timer.run(_processSendQueryQueue);
 
     return query;
   }
@@ -683,7 +675,7 @@ class ConnectionImpl implements Connection {
   void _destroy() {
     _state = closed;
     _socket.destroy();
-    new Future(() => _messages.close());
+    Timer.run(_messages.close);
   }
 
 }
