@@ -148,7 +148,7 @@ class ConnectionImpl implements Connection {
       });
 
       // Write header, and SSL magic number.
-      socket.add([0, 0, 0, 8, 4, 210, 22, 47]);
+      socket.add(const [0, 0, 0, 8, 4, 210, 22, 47]);
 
     })
     .catchError(completer.completeError);
