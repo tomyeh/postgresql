@@ -3,6 +3,8 @@
 > A temporary fork of [Greg's PostgreSQL driver](https://github.com/xxgreg/postgresql)
 > using conserved substitution respecting strings and @@ operators,
 > also optimizing the pool implementation aggressivly.
+>
+> `encodeString()` supports trimNull to work around the null character issue
 
 [![Build Status](https://drone.io/github.com/xxgreg/postgresql/status.png)](https://drone.io/github.com/xxgreg/postgresql/latest)
 
