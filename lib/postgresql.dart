@@ -3,6 +3,9 @@ library postgresql;
 import 'dart:async';
 import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart' as impl;
 
+export 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart'
+  show encodeString;
+
 /// Connect to a PostgreSQL database.
 /// 
 /// A uri has the following format:
@@ -288,9 +291,6 @@ abstract class TypeConverter {
   Object decode(String value, int pgType,
                 {bool isUtcTimeZone, getConnectionName()});
 }
-
-/// Escape strings to a postgresql string format. i.e. E'str\'ing'
-String encodeString(String s) => impl.encodeString(s);
 
 
 //TODO change to enum once implemented.
