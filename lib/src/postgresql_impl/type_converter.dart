@@ -4,8 +4,9 @@ const int _apos = 39;
 const int _return = 13;
 const int _newline = 10;
 const int _backslash = 92;
+const int _null = 0;
 
-final _escapeRegExp = new RegExp(r"['\r\n\\]");
+final _escapeRegExp = new RegExp(r"['\r\n\\\u0000]"); //detect unsupported null
 
 class RawTypeConverter extends DefaultTypeConverter {
    String encode(value, String type, {getConnectionName()})
@@ -15,7 +16,7 @@ class RawTypeConverter extends DefaultTypeConverter {
      getConnectionName()}) => value;
 }
 
-String encodeString(String s) {
+String encodeString(String s, {bool trimNull: false}) {
   if (s == null) return ' null ';
 
   var escaped = s.replaceAllMapped(_escapeRegExp, (m) {
@@ -24,13 +25,15 @@ String encodeString(String s) {
      case _return: return r'\r';
      case _newline: return r'\n';
      case _backslash: return r'\\';
-     default: assert(false);
+     case _null:
+      if (!trimNull)
+        throw new PostgresqlException('Not allowed: null character', '');
+      return '';
    }
  });
 
   return " E'$escaped' ";
 }
-
 
 class DefaultTypeConverter implements TypeConverter {
     
