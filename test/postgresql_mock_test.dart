@@ -45,7 +45,7 @@ testStartup(MockServer server) async {
     
     await backend.waitForClient();
     
-    expect(backend.received, equals([new Query(sql).encode()]), verbose: true);
+    expect(backend.received, equals([new Query(sql).encode()]));
     backend.clear();
 
     backend.sendToClient(new RowDescription([new Field('?', PG_TEXT)]).encode());

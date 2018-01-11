@@ -12,7 +12,7 @@ const int _9 = 57;
 const int _at = 64;
 const int _colon = 58;
 const int _underscore = 95;
-const int _quot = 34, _squot = 39, _dollar = 36, _gt = 62, _backslash = 92;
+const int _quot = 34, _squot = 39, _dollar = 36, /*_gt = 62,*/ _backslash = 92;
 
 class _Token {
   _Token(this.type, this.value, [this.typeName]);
@@ -39,7 +39,7 @@ class ParseException {
       : '$message At character: $index, in source "$source"';
 }
 
-String substitute(String source, values, String encodeValue(value, String)) {
+String substitute(String source, values, String encodeValue(value, String type)) {
 
   var valueWriter;
 
@@ -71,7 +71,7 @@ String substitute(String source, values, String encodeValue(value, String)) {
   return buf.toString();
 }
 
-_createListValueWriter(List list, String encodeValue(value, String))
+_createListValueWriter(List list, String encodeValue(value, String type))
   => (StringSink buf, String identifier, String type) {
 
   int i = int.parse(identifier, onError:
@@ -84,7 +84,7 @@ _createListValueWriter(List list, String encodeValue(value, String))
   buf.write(s);
 };
 
-_createMapValueWriter(Map map, String encodeValue(value, String))
+_createMapValueWriter(Map map, String encodeValue(value, String type))
   => (StringSink buf, String identifier, String type) {
 
   var val;
