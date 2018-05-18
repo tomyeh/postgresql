@@ -91,7 +91,7 @@ class ConnectionImpl implements Connection {
     
     var onTimeout = () => throw new PostgresqlException(
         'Postgresql connection timed out. Timeout: $connectionTimeout.',
-        getDebugName());
+        getDebugName(), exception: PE_CONNECTION_TIMEOUT);
     
     var connectFunc = mockSocketConnect == null
         ? Socket.connect
@@ -134,7 +134,8 @@ class ConnectionImpl implements Connection {
           completer.completeError(
               new PostgresqlException(
                   'This postgresql server is not configured to support SSL '
-                  'connections.', null)); //FIXME ideally pass the connection pool name through to this exception.
+                  'connections.', null, //FIXME ideally pass the connection pool name through to this exception.
+                  exception: PE_CONNECTION_FAILED));
         } else {
           // TODO add option to only allow valid certs.
           // Note libpq also defaults to ignoring bad certificates, so this is
@@ -159,7 +160,8 @@ class ConnectionImpl implements Connection {
   void _sendStartupMessage() {
     if (_state != socketConnected)
       throw new PostgresqlException(
-          'Invalid state during startup.', _getDebugName());
+          'Invalid state during startup.', _getDebugName(),
+          exception: PE_CONNECTION_FAILED);
 
     var msg = new MessageBuffer();
     msg.addInt32(0); // Length padding.
@@ -191,7 +193,8 @@ class ConnectionImpl implements Connection {
 
     if (_state != authenticating)
       throw new PostgresqlException(
-          'Invalid connection state while authenticating.', _getDebugName());
+          'Invalid connection state while authenticating.', _getDebugName(),
+          exception: PE_CONNECTION_FAILED);
 
     int authType = _buffer.readInt32();
 
@@ -204,7 +207,8 @@ class ConnectionImpl implements Connection {
     if (authType != _AUTH_TYPE_MD5) {
       throw new PostgresqlException('Unsupported or unknown authentication '
           'type: ${_authTypeAsString(authType)}, only MD5 authentication is '
-          'supported.', _getDebugName());
+          'supported.', _getDebugName(),
+          exception: PE_CONNECTION_FAILED);
     }
 
     var bytes = _buffer.readBytes(4);
@@ -516,7 +520,8 @@ class ConnectionImpl implements Connection {
 
     if (_state == closed)
       throw new PostgresqlException(
-          'Connection is closed, cannot execute query.', _getDebugName());
+          'Connection is closed, cannot execute query.', _getDebugName(),
+          exception: PE_CONNECTION_CLOSED);
 
     var query = new _Query(sql);
     _sendQueryQueue.addLast(query);
@@ -644,7 +649,8 @@ class ConnectionImpl implements Connection {
       var c = _query._controller;
       if (c != null && !c.isClosed) {
         c.addError(new PostgresqlException(
-            'Connection closed before query could complete', _getDebugName()));
+            'Connection closed before query could complete', _getDebugName(),
+            exception: PE_CONNECTION_CLOSED));
         c.close();
         _query = null;
       }
