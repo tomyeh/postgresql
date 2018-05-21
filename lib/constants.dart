@@ -34,4 +34,4 @@ const
     PE_CONNECTION_TIMEOUT = 4001,
     PE_POOL_STOPPED = 4002,
     PE_CONNECTION_CLOSED = 4003,
-    PE_CONNECTION_FAILED = 40004; //miscellaneous connection errors (excluding SQL statement issues)
+    PE_CONNECTION_FAILED = 40004; //miscellaneous connection errors (excluding SQL statement errors)

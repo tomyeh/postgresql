@@ -235,23 +235,28 @@ class PoolImpl implements Pool {
     pconn._state = connecting;
     _connections.add(pconn);
 
-    var conn = await _connectionFactory(
-      settings.databaseUri,
-      connectionTimeout: settings.establishTimeout,
-      applicationName: settings.applicationName,
-      timeZone: settings.timeZone,
-      typeConverter: _typeConverter,
-      getDebugName: () => pconn.name);
-    
-    // Pass this connection's messages through to the pool messages stream.
-    conn.messages.listen((msg) => _messages.add(msg),
-        onError: (msg) => _messages.addError(msg));
+    try {
+      var conn = await _connectionFactory(
+        settings.databaseUri,
+        connectionTimeout: settings.establishTimeout,
+        applicationName: settings.applicationName,
+        timeZone: settings.timeZone,
+        typeConverter: _typeConverter,
+        getDebugName: () => pconn.name);
 
-    pconn._connection = conn;
-    pconn._established = new DateTime.now(); 
-    pconn._state = available;
-    
-    _debug('Established connection. ${pconn.name}');
+      // Pass this connection's messages through to the pool messages stream.
+      conn.messages.listen((msg) => _messages.add(msg),
+          onError: (msg) => _messages.addError(msg));
+
+      pconn._connection = conn;
+      pconn._established = new DateTime.now(); 
+      pconn._state = available;
+      
+      _debug('Established connection. ${pconn.name}');
+    } catch (_) {
+      _connections.remove(pconn); //clean zombies
+      rethrow;
+    }
   }
 
   //A safe version that catches the exception.
@@ -262,6 +267,7 @@ class PoolImpl implements Pool {
           severity: 'WARNING',
           message: "Failed to establish connection",
           exception: ex));
+      return ex; //so caller can handle errors
     });
   
   void _heartbeat() {
@@ -384,7 +390,7 @@ class PoolImpl implements Pool {
     timeoutException() => new pg.PostgresqlException(
       'Obtaining connection from pool exceeded timeout: '
         '${settings.connectionTimeout}.\nAlive connections: ${_connections.length}', 
-            pconn == null ? null : pconn.name, exception: PE_CONNECTION_TIMEOUT);
+            pconn?.name, exception: PE_CONNECTION_TIMEOUT);
    
     // If there are currently no available connections then
     // add the current connection request at the end of the
@@ -427,7 +433,7 @@ class PoolImpl implements Pool {
     => _connections.firstWhere((c) => c._state == available, orElse: () => null);
 
   /// If connections are available, return them to waiting clients.
-  void _processWaitQueue() {
+  void _processWaitQueue([List previousResults]) {
     
     if (_state != running) return;
     
@@ -437,19 +443,34 @@ class PoolImpl implements Pool {
     // order which connect was called, and that connections are reused, and
     // others left idle so that the pool can shrink.
     var pconns = _getAvailable();
-    while(_waitQueue.isNotEmpty && pconns.isNotEmpty) {
+    while (_waitQueue.isNotEmpty && pconns.isNotEmpty) {
       var completer = _waitQueue.removeFirst();
       var pconn = pconns.removeLast();
       pconn._state = reserved;
       completer.complete(pconn);
     }
-        
+
+    //Handle the error(s) found in the previous invocation if any
+    //Purpose: make the caller of [connect] to end as soon as possible.
+    //Otherwise, it will wait until timeout
+    if (_waitQueue.isNotEmpty && previousResults != null) {
+      for (final r in previousResults)
+        if (r is SocketException) { //unable to connect DB server
+          final ex = new pg.PostgresqlException(
+              'Failed to establish connection', 
+              null, exception: PE_CONNECTION_FAILED);
+          while (_waitQueue.isNotEmpty)
+            _waitQueue.removeFirst().completeError(ex);
+        }
+    }
+
     // If required start more connection.
     if (!_establishing) { //once at a time
       final int count = math.min(_waitQueue.length,
           settings.maxConnections - _connections.length);
       if (count > 0) {
         _establishing = true;
+        List results;
         new Future.sync(() {
           final List<Future> ops = new List(count);
           for (int i = 0; i < count; i++) {
@@ -457,10 +478,13 @@ class PoolImpl implements Pool {
           }
           return Future.wait(ops);
         })
+        .then((_) {
+          results = _;
+        })
         .whenComplete(() {
           _establishing = false;
 
-          _processWaitQueue(); //do again; there might be more requests
+          _processWaitQueue(results); //do again; there might be more requests
         });
       }
     }

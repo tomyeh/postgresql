@@ -5,6 +5,16 @@
 > also optimizing the pool implementation aggressivly.
 >
 > `encodeString()` supports trimNull to work around the null character issue
+>
+> `Pool.connect()` returns as soon as possible when failed to connect to
+> database. Also, it resumes if the connection is back.
+> Caller can detect it as follows:
+
+```
+ex is PostgresqlException
+&& const [PE_CONNECTION_TIMEOUT, PE_CONNECTION_CLOSED,
+		PE_CONNECTION_FAILED, PE_POOL_STOPPED].contains(ex.exception)
+```
 
 [![Build Status](https://drone.io/github.com/xxgreg/postgresql/status.png)](https://drone.io/github.com/xxgreg/postgresql/latest)
 
