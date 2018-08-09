@@ -351,7 +351,7 @@ class PoolImpl implements Pool {
     if (_state != running)
       throw new pg.PostgresqlException(
         'Connect called while pool is not running.', null,
-        exception: PE_POOL_STOPPED);
+        exception: pePoolStopped);
     
     StackTrace stackTrace = null;
     if (settings.leakDetectionThreshold != null) {
@@ -381,7 +381,7 @@ class PoolImpl implements Pool {
 
     if (state == stopping || state == stopped)
       throw new pg.PostgresqlException(
-          'Connect failed as pool is stopping.', null, exception: PE_POOL_STOPPED);
+          'Connect failed as pool is stopping.', null, exception: pePoolStopped);
     
     var stopwatch = new Stopwatch()..start();
 
@@ -390,7 +390,7 @@ class PoolImpl implements Pool {
     timeoutException() => new pg.PostgresqlException(
       'Obtaining connection from pool exceeded timeout: '
         '${settings.connectionTimeout}.\nAlive connections: ${_connections.length}', 
-            pconn?.name, exception: PE_CONNECTION_TIMEOUT);
+            pconn?.name, exception: peConnectionTimeout);
    
     // If there are currently no available connections then
     // add the current connection request at the end of the
@@ -458,7 +458,7 @@ class PoolImpl implements Pool {
         if (r is SocketException) { //unable to connect DB server
           final ex = new pg.PostgresqlException(
               'Failed to establish connection', 
-              null, exception: PE_CONNECTION_FAILED);
+              null, exception: peConnectionFailed);
           while (_waitQueue.isNotEmpty)
             _waitQueue.removeFirst().completeError(ex);
         }
@@ -605,7 +605,7 @@ class PoolImpl implements Pool {
     _waitQueue.forEach((completer) =>
       completer.completeError(new pg.PostgresqlException(
           'Connection pool is stopping.', null,
-          exception: PE_POOL_STOPPED)));
+          exception: pePoolStopped)));
     _waitQueue.clear();
     
     

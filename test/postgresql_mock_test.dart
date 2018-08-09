@@ -55,7 +55,7 @@ testStartup(MockServer server) async {
     await for (var r in querying) {
       row = r;
       
-      expect(row, new isInstanceOf<Row>());
+//      expect(row, new isInstanceOf<Row>());
       expect(row.toList().length, equals(1));
       expect(row[0], equals('foo'));
       

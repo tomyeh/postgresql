@@ -78,7 +78,7 @@ class Buffer {
   //TODO This is a hot method find a way to optimise this.
   // Switch to use new core classes such as ChunkedConversionSink
   // Example here: https://www.dartlang.org/articles/converters-and-codecs/
-  String readUtf8StringN(int size) => UTF8.decode(readBytes(size));
+  String readUtf8StringN(int size) => utf8.decode(readBytes(size));
 
 
   /// Read a zero terminated utf8 string.
@@ -92,7 +92,7 @@ class Buffer {
       if (i > maxSize) throw _createException('Max size exceeded while reading string: $maxSize.');
       bytes.add(c);
     }
-    return UTF8.decode(bytes);
+    return utf8.decode(bytes);
   }
 
   void append(List<int> data) {
@@ -145,7 +145,7 @@ class MessageBuffer {
 
   void addUtf8String(String s) {
     //Postgresql server must be configured to accept UTF8 - this is the default.
-    _buffer.addAll(UTF8.encode(s));
+    _buffer.addAll(utf8.encode(s));
     addByte(0);
   }
 

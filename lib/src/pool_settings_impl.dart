@@ -189,8 +189,8 @@ class PoolSettingsImpl implements PoolSettings {
     var map = toMap();
     map['databaseUri'] = uri;
     var settings = new PoolSettings.fromMap(map);
-    var json = JSON.encode(settings);
+    var data = json.encode(settings);
     
-    return 'PoolSettings $json';
+    return 'PoolSettings $data';
   }
 }

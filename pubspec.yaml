@@ -1,5 +1,5 @@
 name: postgresql2
-version: 0.3.4+6
+version: 0.5.0
 authors:
 - Greg Lowe <greg@vis.net.nz>
 - Tom Yeh <tomyeh@rikulo.org>
@@ -9,11 +9,10 @@ description: >
   also optimizing the pool implementation aggressivly.
 homepage: https://github.com/tomyeh/postgresql
 environment:
-  sdk: ">=1.8.0 <2.0.0"
+  sdk: ">=2.0.0 <3.0.0"
 dependencies:
   crypto: ">=2.0.0 <3.0.0"
   convert: ">=1.0.0 <3.0.0"
-  func: "^0.1.0"
 dev_dependencies:
-  test: ">=0.12.0 <1.0.0"
+  test: any
   yaml: ">=0.9.0 <3.0.0"

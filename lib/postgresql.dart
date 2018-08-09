@@ -146,7 +146,6 @@ abstract class Connection {
 ///        .single
 ///        .then((row) => print(row[0]));
 ///
-@proxy
 abstract class Row {
   
   /// Get a column value by column index (zero based).

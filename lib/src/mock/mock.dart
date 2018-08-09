@@ -8,10 +8,10 @@ import 'package:postgresql2/constants.dart';
 import 'package:postgresql2/postgresql.dart' as pg;
 import 'package:postgresql2/src/pool_impl.dart' as pi;
 import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart';
-import 'package:func/func.dart';
 part 'mock_server.dart';
 part 'mock_socket_server.dart';
 
+typedef R Func2<A, B, R>(A a, B b);
 Function mockLogger;
 
 void _log(msg) { if (mockLogger != null) mockLogger(msg); }
@@ -148,7 +148,6 @@ abstract class MockRow implements pg.Row {
   factory MockRow.fromMap(LinkedHashMap map) => new _MapMockRow(map);
 }
 
-@proxy
 class _MapMockRow implements MockRow {
 
   _MapMockRow(this._values);
@@ -164,6 +163,7 @@ class _MapMockRow implements MockRow {
     _values.forEach(f);
   }
 
+  @override
   noSuchMethod(Invocation invocation) {
     var name = invocation.memberName;
     if (invocation.isGetter) {

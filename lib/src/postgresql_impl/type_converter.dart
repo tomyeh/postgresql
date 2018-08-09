@@ -102,7 +102,7 @@ class DefaultTypeConverter implements TypeConverter {
     }
   
     if (type == 'json' || type == 'jsonb')
-      return encodeString(JSON.encode(value));
+      return encodeString(json.encode(value));
   
   //  if (type == 'bytea') {
   //    if (value is! List<int>) throwError();
@@ -136,7 +136,7 @@ class DefaultTypeConverter implements TypeConverter {
       return value.toString();
   
     if (value is Map)
-      return encodeString(JSON.encode(value));
+      return encodeString(json.encode(value));
   
     if (value is List)
       return encodeArray(value);
@@ -147,8 +147,8 @@ class DefaultTypeConverter implements TypeConverter {
   
   String encodeNumber(num n) {
     if (n.isNaN) return "'nan'";
-    if (n == double.INFINITY) return "'infinity'";
-    if (n == double.NEGATIVE_INFINITY) return "'-infinity'";
+    if (n == double.infinity) return "'infinity'";
+    if (n == double.negativeInfinity) return "'-infinity'";
     return n.toString();
   }
   
@@ -236,7 +236,7 @@ class DefaultTypeConverter implements TypeConverter {
   
       case _PG_JSON:
       case _PG_JSONB:
-        return JSON.decode(value);
+        return json.decode(value);
   
       // Not implemented yet - return a string.
       case _PG_MONEY:

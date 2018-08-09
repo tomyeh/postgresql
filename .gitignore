@@ -2,6 +2,7 @@
 /*.iml
 /pubspec.lock
 .DS_Store
+.dart_tool
 packages
 out
 *.js

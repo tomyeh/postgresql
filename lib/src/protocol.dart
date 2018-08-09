@@ -50,7 +50,7 @@ class Startup implements ProtocolMessage {
       ..addUtf8('database')
       ..addUtf8(database)
       ..addUtf8('client_encoding')
-      ..addUtf8('UTF8');    
+      ..addUtf8('utf8');    
     parameters.forEach((k, v) {
       mb.addUtf8(k);
       mb.addUtf8(v);
@@ -60,7 +60,7 @@ class Startup implements ProtocolMessage {
     return mb.build();
   }
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'protocolVersion': protocolVersion,
@@ -73,7 +73,7 @@ class SslRequest implements ProtocolMessage {
   // Startup and ssl request are the only messages without a messageCode.
   final int messageCode = 0;
   List<int> encode() => <int> [0, 0, 0, 8, 4, 210, 22, 47];
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
   });
@@ -82,7 +82,7 @@ class SslRequest implements ProtocolMessage {
 class Terminate implements ProtocolMessage {
   final int messageCode = 'X'.codeUnitAt(0);
   List<int> encode() => new _MessageBuilder(messageCode).build();
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
   });
@@ -118,7 +118,7 @@ class AuthenticationRequest implements ProtocolMessage {
     return mb.build();
   }
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'authType': {0: "ok", 5: "md5"}[authType],
@@ -143,7 +143,7 @@ class BackendKeyData implements ProtocolMessage {
     return mb.build();
   }
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'backendPid': backendPid,
@@ -166,7 +166,7 @@ class ParameterStatus implements ProtocolMessage {
     return mb.build();
   }
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'name': name,
@@ -184,7 +184,7 @@ class Query implements ProtocolMessage {
   List<int> encode()
     => (new _MessageBuilder(messageCode)..addUtf8(query)).build(); //FIXME why do I need extra parens here. Analyzer bug?
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'query': query});
@@ -202,7 +202,7 @@ class Field {
   final int formatCode = 0;
   bool get isBinary => formatCode == 1;
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'name': name,
     'fieldId': fieldId,
     'tableColNo': tableColNo,
@@ -239,7 +239,7 @@ class RowDescription implements ProtocolMessage {
     return mb.build();
   }
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'fields': fields});
@@ -255,7 +255,7 @@ class DataRow implements ProtocolMessage {
   }
 
   DataRow.fromStrings(List<String> strings)
-    : values = strings.map(UTF8.encode).toList(growable: false);
+    : values = strings.map(utf8.encode).toList(growable: false);
   
   final int messageCode = 'D'.codeUnitAt(0);
   final List<List<int>> values;
@@ -272,10 +272,10 @@ class DataRow implements ProtocolMessage {
     return mb.build();
   }
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
-    'values': values.map(UTF8.decode) //TODO not all DataRows are text, some are binary.
+    'values': values.map(utf8.decode) //TODO not all DataRows are text, some are binary.
   });
 }
 
@@ -297,7 +297,7 @@ class CommandComplete implements ProtocolMessage {
   
   List<int> encode() => (new _MessageBuilder(messageCode)..addUtf8(tag)).build(); //FIXME remove extra parens.
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'tag': tag
@@ -325,7 +325,7 @@ class ReadyForQuery implements ProtocolMessage {
     return mb.build();
   }
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'transactionStatus': _txStatus[transactionStatus]
@@ -367,7 +367,7 @@ abstract class BaseResponse implements ProtocolMessage {
     return mb.build();
   }
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
     'fields': fields
@@ -388,7 +388,7 @@ class EmptyQueryResponse implements ProtocolMessage {
   final int messageCode = 'I'.codeUnitAt(0);
   List<int> encode() => new _MessageBuilder(messageCode).build();
   
-  String toString() => JSON.encode({
+  String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode)
   });
@@ -447,8 +447,8 @@ class _MessageBuilder {
 
   /// Add a null terminated string.
   void addUtf8(String s) {
-    // Postgresql server must be configured to accept UTF8 - this is the default.
-    _builder.add(UTF8.encode(s));
+    // Postgresql server must be configured to accept utf8 - this is the default.
+    _builder.add(utf8.encode(s));
     addByte(0);
   }
 

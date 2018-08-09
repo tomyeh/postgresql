@@ -1,5 +1,8 @@
 library postgresql.duration_format;
 
+int parseInt(String s, {int onError(String s)})
+=> int.tryParse(s) ?? onError(s);
+
 class DurationFormat {
 
   DurationFormat()
@@ -15,10 +18,10 @@ class DurationFormat {
     if (s == null) throw new ArgumentError.notNull('string');
     
     ex() => new FormatException('Cannot parse string as duration: "$s".');
-    fail(s) => onError == null ? throw ex() : onError(s);
     
     parsePrefix(s, [int suffixLen = 1])
-      => int.parse(s.substring(0, s.length-suffixLen), onError: fail); 
+      => parseInt(s.substring(0, s.length-suffixLen),
+          onError: (s) => onError == null ? throw ex() : onError(s)); 
     
     if (s.endsWith('d')) return new Duration(days: parsePrefix(s));
     if (s.endsWith('h')) return new Duration(hours: parsePrefix(s));
@@ -39,19 +42,19 @@ class DurationFormat {
     if (d.inMicroseconds == 0)
       return '0s';
     
-    if (d.inMicroseconds % Duration.MICROSECONDS_PER_MILLISECOND != 0)
+    if (d.inMicroseconds % Duration.microsecondsPerMillisecond != 0)
       return '${d.inMicroseconds}us';
 
-    if (d.inMilliseconds % Duration.MILLISECONDS_PER_SECOND != 0)
+    if (d.inMilliseconds % Duration.millisecondsPerSecond != 0)
       return '${d.inMilliseconds}ms';
 
-    if (d.inSeconds % Duration.SECONDS_PER_MINUTE != 0)
+    if (d.inSeconds % Duration.secondsPerMinute != 0)
       return '${d.inSeconds}s';
 
-    if (d.inMinutes % Duration.MINUTES_PER_HOUR != 0)
+    if (d.inMinutes % Duration.minutesPerHour != 0)
       return '${d.inMinutes}m';
 
-    if (d.inHours % Duration.HOURS_PER_DAY != 0)
+    if (d.inHours % Duration.hoursPerDay != 0)
       return '${d.inHours}h';
 
     return '${d.inDays}d';

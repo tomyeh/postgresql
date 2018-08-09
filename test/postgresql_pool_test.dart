@@ -80,7 +80,7 @@ Future testStartTimeout() async {
     await pool.start();
     fail('Pool started, but should have timed out.');
   } catch (ex) {
-    expect(ex, new isInstanceOf<PostgresqlException>());
+//    expect(ex, new isInstanceOf<PostgresqlException>());
     expect(ex.message, contains('timed out'));
     expect(pool.state, equals(startFailed));
   }
@@ -121,7 +121,7 @@ Future testConnectTimeout() async {
     await pool.connect();
     fail('connect() should have timed out.');
   } on PostgresqlException catch (ex) {
-    expect(ex, new isInstanceOf<PostgresqlException>());
+//    expect(ex, new isInstanceOf<PostgresqlException>());
     expect(ex.message, contains('timeout'));
     expect(pool.state, equals(running));
   }

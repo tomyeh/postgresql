@@ -91,7 +91,7 @@ class ConnectionImpl implements Connection {
     
     var onTimeout = () => throw new PostgresqlException(
         'Postgresql connection timed out. Timeout: $connectionTimeout.',
-        getDebugName(), exception: PE_CONNECTION_TIMEOUT);
+        getDebugName(), exception: peConnectionTimeout);
     
     var connectFunc = mockSocketConnect == null
         ? Socket.connect
@@ -135,7 +135,7 @@ class ConnectionImpl implements Connection {
               new PostgresqlException(
                   'This postgresql server is not configured to support SSL '
                   'connections.', null, //FIXME ideally pass the connection pool name through to this exception.
-                  exception: PE_CONNECTION_FAILED));
+                  exception: peConnectionFailed));
         } else {
           // TODO add option to only allow valid certs.
           // Note libpq also defaults to ignoring bad certificates, so this is
@@ -161,7 +161,7 @@ class ConnectionImpl implements Connection {
     if (_state != socketConnected)
       throw new PostgresqlException(
           'Invalid state during startup.', _getDebugName(),
-          exception: PE_CONNECTION_FAILED);
+          exception: peConnectionFailed);
 
     var msg = new MessageBuffer();
     msg.addInt32(0); // Length padding.
@@ -194,7 +194,7 @@ class ConnectionImpl implements Connection {
     if (_state != authenticating)
       throw new PostgresqlException(
           'Invalid connection state while authenticating.', _getDebugName(),
-          exception: PE_CONNECTION_FAILED);
+          exception: peConnectionFailed);
 
     int authType = _buffer.readInt32();
 
@@ -208,7 +208,7 @@ class ConnectionImpl implements Connection {
       throw new PostgresqlException('Unsupported or unknown authentication '
           'type: ${_authTypeAsString(authType)}, only MD5 authentication is '
           'supported.', _getDebugName(),
-          exception: PE_CONNECTION_FAILED);
+          exception: peConnectionFailed);
     }
 
     var bytes = _buffer.readBytes(4);
@@ -398,7 +398,7 @@ class ConnectionImpl implements Connection {
 
       default:
         throw new PostgresqlException('Unknown, or unimplemented message: '
-            '${UTF8.decode([msgType])}.', _getDebugName());
+            '${utf8.decode([msgType])}.', _getDebugName());
     }
 
     if (pos + length != _buffer.bytesRead)
@@ -490,12 +490,12 @@ class ConnectionImpl implements Connection {
     return query._rowsAffected;
   }
 
-  Future runInTransaction(Future operation(), [Isolation isolation = readCommitted]) async {
+  Future runInTransaction(Future operation(), [Isolation isolation = Isolation.readCommitted]) async {
 
     var begin = 'begin';
-    if (isolation == repeatableRead)
+    if (isolation == Isolation.repeatableRead)
       begin = 'begin; set transaction isolation level repeatable read;';
-    else if (isolation == serializable)
+    else if (isolation == Isolation.serializable)
       begin = 'begin; set transaction isolation level serializable;';
 
     try {
@@ -521,7 +521,7 @@ class ConnectionImpl implements Connection {
     if (_state == closed)
       throw new PostgresqlException(
           'Connection is closed, cannot execute query.', _getDebugName(),
-          exception: PE_CONNECTION_CLOSED);
+          exception: peConnectionClosed);
 
     var query = new _Query(sql);
     _sendQueryQueue.addLast(query);
@@ -630,8 +630,7 @@ class ConnectionImpl implements Connection {
     assert(_buffer.bytesAvailable >= length);
 
     var commandString = _buffer.readUtf8String(length);
-    int rowsAffected =
-        int.parse(commandString.split(' ').last, onError: (_) => null);
+    int rowsAffected = int.tryParse(commandString.split(' ').last);
 
     _query._commandIndex++;
     _query._rowsAffected = rowsAffected;
@@ -650,7 +649,7 @@ class ConnectionImpl implements Connection {
       if (c != null && !c.isClosed) {
         c.addError(new PostgresqlException(
             'Connection closed before query could complete', _getDebugName(),
-            exception: PE_CONNECTION_CLOSED));
+            exception: peConnectionClosed));
         c.close();
         _query = null;
       }

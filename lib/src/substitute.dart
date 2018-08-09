@@ -74,8 +74,8 @@ String substitute(String source, values, String encodeValue(value, String type))
 _createListValueWriter(List list, String encodeValue(value, String type))
   => (StringSink buf, String identifier, String type) {
 
-  int i = int.parse(identifier, onError:
-    (_) => throw new ParseException('Expected integer parameter.'));
+  int i = int.tryParse(identifier) ??
+      (throw new ParseException('Expected integer parameter.'));
 
   if (i < 0 || i >= list.length)
     throw new ParseException('Substitution token out of range.');
@@ -90,8 +90,8 @@ _createMapValueWriter(Map map, String encodeValue(value, String type))
   var val;
 
   if (isDigit(identifier.codeUnits.first)) {
-    int i = int.parse(identifier, onError:
-      (_) => throw new ParseException('Expected integer parameter.'));
+    int i = int.tryParse(identifier) ??
+        (throw new ParseException('Expected integer parameter.'));
 
     if (i < 0 || i >= map.values.length)
       throw new ParseException("Substitution token out of range.");

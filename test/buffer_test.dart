@@ -21,7 +21,7 @@ main() {
       msg.addUtf8String(smiles(20));
 
       var s = smiles(i);
-      msg.addInt32(UTF8.encode(s).length);
+      msg.addInt32(utf8.encode(s).length);
       msg.addUtf8String(s);
     }
 
@@ -47,7 +47,7 @@ main() {
       expect(buf.readUtf8String(100000), smiles(20));
 
       var s = smiles(i);
-      int len = UTF8.encode(s).length;
+      int len = utf8.encode(s).length;
       expect(buf.readInt32(), equals(len));
       expect(buf.readUtf8StringN(len), equals(s));
       expect(buf.readByte(), equals(0)); // Zero padding byte for string.
@@ -56,7 +56,7 @@ main() {
 }
 
 void addUtf8String(List<int> buffer, String s) {
-  buffer.addAll(UTF8.encode(s));
+  buffer.addAll(utf8.encode(s));
 }
 
 void addInt16(List<int> buffer, int i) {

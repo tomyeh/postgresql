@@ -138,7 +138,8 @@ class Mocket extends StreamView<List<int>> implements Socket {
     throw new UnimplementedError();
   }
 
-  Future<Socket> get done => new Future.value(_isDone);
+  @override
+  Future get done => new Future.value(_isDone);
 
   InternetAddress get address => throw new UnimplementedError();
   get encoding => throw new UnimplementedError();
