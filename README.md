@@ -248,3 +248,4 @@ http://www.dartlang.org/
 ## Who Uses
 
 * [Quire](https://quire.io) - a simple, collaborative, multi-level task management tool.
+* [Keikai](https://keikai.io) - a sophisticated spreadsheet for big data
