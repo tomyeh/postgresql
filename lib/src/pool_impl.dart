@@ -66,14 +66,9 @@ class ConnectionDecorator implements pg.Connection {
       ? unknown
       : _conn.transactionState;
 
-  @deprecated pg.TransactionState get transactionStatus
-    => transactionState;
-
   Stream<pg.Message> get messages => _isReleased
     ? new Stream.fromIterable([])
     : _conn.messages;
-
-  @deprecated Stream<pg.Message> get unhandled => messages;
 
   Map<String,String> get parameters => _isReleased ? {} : _conn.parameters;
 
@@ -579,9 +574,6 @@ class PoolImpl implements Pool {
         break;
       }
   }
-  
-  /// Depreciated. Use [stop]() instead.
-  @deprecated void destroy() { stop(); }
   
   Future stop() {
     _debug('Stop');

@@ -1,5 +1,5 @@
 name: postgresql2
-version: 0.5.0
+version: 0.5.1
 authors:
 - Greg Lowe <greg@vis.net.nz>
 - Tom Yeh <tomyeh@rikulo.org>
@@ -8,11 +8,14 @@ description: >
   using conserved substitution respecting strings and @@ operators.
   also optimizing the pool implementation aggressivly.
 homepage: https://github.com/tomyeh/postgresql
+
 environment:
-  sdk: ">=2.0.0 <3.0.0"
+  sdk: '>=2.0.0-dev <3.0.0'
+
 dependencies:
   crypto: ">=2.0.0"
   convert: ">=1.0.0"
+
 dev_dependencies:
   test: any
   yaml: any

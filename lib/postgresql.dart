@@ -112,9 +112,6 @@ abstract class Connection {
   /// [ServerMessage] for more information.
   Stream<Message> get messages;
 
-  /// Deprecated. Use messages.
-  @deprecated Stream<Message> get unhandled;
-
   /// Server configuration parameters such as date format and timezone.
   Map<String,String> get parameters;
   
@@ -129,9 +126,6 @@ abstract class Connection {
 
   /// The state of the current transaction.
   TransactionState get transactionState;
-  
-  /// Deprecated. Use transactionState.
-  @deprecated TransactionState get transactionStatus;
 }
 
 /// Row allows field values to be retrieved as if they were getters.
@@ -352,17 +346,6 @@ class Isolation {
   static const Isolation repeatableRead = const Isolation('repeatableRead');
   static const Isolation serializable = const Isolation('serializable');
 }
-
-
-@deprecated const Isolation READ_COMMITTED = Isolation.readCommitted;
-@deprecated const Isolation REPEATABLE_READ = Isolation.repeatableRead;
-@deprecated const Isolation SERIALIZABLE = Isolation.serializable;
-
-@deprecated const TRANSACTION_BEGUN = TransactionState.begun;
-@deprecated const TRANSACTION_ERROR = TransactionState.error;
-@deprecated const TRANSACTION_NONE = TransactionState.none;
-@deprecated const TRANSACTION_UNKNOWN = TransactionState.unknown;
-
 
 class PostgresqlException implements Exception {
   

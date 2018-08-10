@@ -24,8 +24,6 @@ class ConnectionImpl implements Connection {
   TransactionState _transactionState = unknown;
   TransactionState get transactionState => _transactionState;
   
-  @deprecated TransactionState get transactionStatus => _transactionState;
-
   final String _databaseName;
   final String _userName;
   final String _password;
@@ -35,7 +33,7 @@ class ConnectionImpl implements Connection {
   final Socket _socket;
   final Buffer _buffer;
   bool _hasConnected = false;
-  final Completer _connected = new Completer();
+  final _connected = new Completer<ConnectionImpl>();
   final Queue<_Query> _sendQueryQueue = new Queue<_Query>();
   _Query _query;
   int _msgType;
@@ -62,11 +60,9 @@ class ConnectionImpl implements Connection {
     return _parametersView;
   }
   
-  Stream<Message> get messages => _messages.stream as Stream<Message>;
+  Stream<Message> get messages => _messages.stream;
 
-  @deprecated Stream<Message> get unhandled => messages;
-  
-  final StreamController _messages = new StreamController.broadcast();
+  final _messages = new StreamController<Message>.broadcast();
   
   static Future<ConnectionImpl> connect(
       String uri,
