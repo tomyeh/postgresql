@@ -34,20 +34,20 @@ main() {
 
     //Should fail with a message like:settings.toUri()
     //AsyncError: 'SocketIOException: OS Error: Connection refused, errno = 111'
-    /*test('Connect failure - incorrect port', () {
+    test('Connect failure - incorrect port', () {
       var map = loadSettings().toMap();
       map['port'] = 9037;
       var uri = new Settings.fromMap(map).toUri();
 
       connect(uri).then((c) => throw new Exception('Should not be reached.'),
-          onError: expectAsync((err) {/* boom! */}));
+          onError: expectAsync1((err) {/* boom! */}));
     });
 
     test('Connect failure - connect to http server', () {
       var uri = 'postgresql://user:pwd@google.com:80/database';
       connect(uri).then((c) => throw new Exception('Should not be reached.'),
-          onError: expectAsync((err) {/* boom! */}));
-    });*/
+          onError: expectAsync1((err) {/* boom! */}));
+    });
   });
 
   group('Close', () {
@@ -61,8 +61,8 @@ main() {
       });
     });
 
-    /*test('Query on closed connection.', () {
-      var cb = expectAsync((e) {});
+    test('Query on closed connection.', () {
+      var cb = expectAsync1((e) {});
       connect(validUri).then((conn) {
         conn.close();
         conn
@@ -74,7 +74,7 @@ main() {
     });
 
     test('Execute on closed connection.', () {
-      var cb = expectAsync((e) {});
+      var cb = expectAsync1((e) {});
       connect(validUri).then((conn) {
         conn.close();
         conn
@@ -82,7 +82,7 @@ main() {
             .then((_) => throw new Exception('Should not be reached.'))
             .catchError(cb);
       });
-    });*/
+    });
   });
 
   group('Query', () {
@@ -96,12 +96,12 @@ main() {
       if (conn != null) conn.close();
     });
 
-    /*test('Invalid sql statement', () {
+    test('Invalid sql statement', () {
       conn
           .query('elect 1')
           .toList()
           .then((rows) => throw new Exception('Should not be reached.'),
-              onError: expectAsync((err) {/* boom! */}));
+              onError: expectAsync1((err) {/* boom! */}));
     });
 
     test('Null sql statement', () {
@@ -109,7 +109,7 @@ main() {
           .query(null)
           .toList()
           .then((rows) => throw new Exception('Should not be reached.'),
-              onError: expectAsync((err) {/* boom! */}));
+              onError: expectAsync1((err) {/* boom! */}));
     });
 
     test('Empty sql statement', () {
@@ -117,8 +117,8 @@ main() {
           .query('')
           .toList()
           .then((rows) => throw new Exception('Should not be reached.'),
-              onError: expectAsync((err) {/* boom! */}));
-    });*/
+              onError: expectAsync1((err) {/* boom! */}));
+    });
 
     test('Whitespace only sql statement', () async {
       var rows = await conn.query('  ').toList();
@@ -202,13 +202,13 @@ main() {
     });
 
     // Postgresql database doesn't allow null bytes in strings.
-    /*test('Select String with null character.', () {
+    test('Select String with null character.', () {
       conn
           .query("select '(\u0000)'")
           .toList()
           .then((r) => fail('Expected query failure.'))
-          .catchError(expectAsync((e) => expect(e, isException)));
-    });*/
+          .catchError(expectAsync1((e) => expect(e, isException)));
+    });
 
     test('Select UTF8 String', () async {
       var list = await conn.query("select '☺'").toList();
@@ -497,19 +497,19 @@ main() {
     });
 
     // This test depends on the locale settings of the postgresql server.
-    /*test('Error information for invalid sql statement', () {
+    test('Error information for invalid sql statement', () {
       conn
           .query('elect 1')
           .toList()
           .then((rows) => throw new Exception('Should not be reached.'),
-              onError: expectAsync((err) {
-        expect(err, new isInstanceOf<PostgresqlException>());
+              onError: expectAsync1((err) {
+        expect(err, const TypeMatcher<PostgresqlException>());
         expect(err.serverMessage, isNotNull);
         expect(err.serverMessage.severity, equals('ERROR'));
         expect(err.serverMessage.code, equals('42601'));
         expect(err.serverMessage.position, equals("1"));
       }));
-    });*/
+    });
   });
 
   group('Object mapping', () {
@@ -565,9 +565,9 @@ main() {
       if (conn1 != null) conn1.close();
       if (conn2 != null) conn2.close();
     });
-/*
+
     test('simple query', () {
-      var cb = expectAsync((_) {});
+      var cb = expectAsync1((_) {});
       conn1.runInTransaction(() {
         return conn1.query("select 'oi'").toList().then((result) {
           expect(result[0][0], equals('oi'));
@@ -576,34 +576,34 @@ main() {
     });
 
     test('simple query read committed', () {
-      var cb = expectAsync((_) {});
+      var cb = expectAsync1((_) {});
       conn1.runInTransaction(() {
         return conn1.query("select 'oi'").toList().then((result) {
           expect(result[0][0], equals('oi'));
         });
-      }, readCommitted).then(cb);
+      }, Isolation.readCommitted).then(cb);
     });
 
     test('simple query repeatable read', () {
-      var cb = expectAsync((_) {});
+      var cb = expectAsync1((_) {});
       conn1.runInTransaction(() {
         return conn1.query("select 'oi'").toList().then((result) {
           expect(result[0][0], equals('oi'));
         });
-      }, readCommitted).then(cb);
+      }, Isolation.readCommitted).then(cb);
     });
 
     test('simple query serializable', () {
-      var cb = expectAsync((_) {});
+      var cb = expectAsync1((_) {});
       conn1.runInTransaction(() {
         return conn1.query("select 'oi'").toList().then((result) {
           expect(result[0][0], equals('oi'));
         });
-      }, serializable).then(cb);
+      }, Isolation.serializable).then(cb);
     });
 
     test('rollback', () {
-      var cb = expectAsync((_) {});
+      var cb = expectAsync1((_) {});
 
       conn1
           .runInTransaction(() {
@@ -620,7 +620,7 @@ main() {
             expect(result, equals([]));
           })
           .then(cb);
-    });*/
+    });
 
     test('type converter', () {
       connect(validUri, typeConverter: new TypeConverter.raw()).then((c) {
@@ -634,8 +634,8 @@ main() {
 
     //TODO test Row.toList() and Row.toMap()
 
-    /*test('getColumns', () {
-      conn1.query('select 42 as val').toList().then(expectAsync((rows) {
+    test('getColumns', () {
+      conn1.query('select 42 as val').toList().then(expectAsync1((rows) {
         rows.forEach((row) {
           expect(row.getColumns()[0].name, 'val');
         });
@@ -643,7 +643,7 @@ main() {
     });
 
     test('isolation', () {
-      var cb = expectAsync((_) {});
+      var cb = expectAsync1((_) {});
       conn1.runInTransaction(() async {
         int count = await conn1.execute('insert into tx values (42)');
         expect(count, 1, reason: "single value should be added");
@@ -658,7 +658,7 @@ main() {
           expect(result2[0][0], equals(43));
         });
       }).then(cb);
-    });*/
+    });
   });
 }
 
