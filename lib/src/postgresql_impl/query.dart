@@ -80,7 +80,7 @@ class _Row implements Row {
   final Map<Symbol, int> _index;
   final List<String> _columnNames;
   final List _columnValues;
-  final List _columns;
+  final List<Column> _columns;
 
   operator[] (int i) => _columnValues[i];
 
@@ -105,9 +105,9 @@ class _Row implements Row {
 
   List toList() => new UnmodifiableListView(_columnValues);
 
-  Map toMap() => new Map.fromIterables(_columnNames, _columnValues);
+  Map<String, dynamic> toMap() => new Map<String, dynamic>.fromIterables(_columnNames, _columnValues);
 
-  List<Column> getColumns() => new UnmodifiableListView(_columns) as List<Column>;
+  List<Column> getColumns() => new UnmodifiableListView<Column>(_columns);
 }
 
 
