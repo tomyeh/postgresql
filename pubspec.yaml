@@ -3,10 +3,17 @@ version: 0.5.1+1
 authors:
 - Greg Lowe <greg@vis.net.nz>
 - Tom Yeh <tomyeh@rikulo.org>
+- Martin Edlman <ac@an.y-co.de>
 description: >
   A temporary fork of Greg's PostgreSQL driver (xxgreg/postgresql)
   using conserved substitution respecting strings and @@ operators.
-  also optimizing the pool implementation aggressivly.
+  also optimizing the pool implementation aggressively.
+  With added support for encoding parametrized lists. E.g.
+  List<int> ids = [ ... ]; // init list with values or get it from parameters
+  result1 = db.query("select * from table where id in (@ids)", { "ids": ids });
+  result2 = db.query("select * from table where id = any (array[@ids]::int[])", { "ids": ids });
+  When using array[@x] syntax in query it's wise to use array type cast (::int[], ::date[], ...)
+  to avoid problems with null list.
 homepage: https://github.com/tomyeh/postgresql
 
 environment:

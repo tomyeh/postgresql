@@ -152,10 +152,8 @@ class DefaultTypeConverter implements TypeConverter {
     return n.toString();
   }
   
-  String encodeArray(List value) {
-    //TODO implement postgresql array types
-    throw _error('Postgresql array types not implemented yet. '
-        'Pull requests welcome ;)', null);
+  String encodeArray(List values) {
+    return values?.map((value) => encodeValueDefault(value))?.join(', ');
   }
   
   String encodeDateTime(DateTime datetime, {bool isDateOnly}) {
