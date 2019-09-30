@@ -30,6 +30,7 @@ String encodeString(String s, {bool trimNull: false}) {
         throw new PostgresqlException('Not allowed: null character', '');
       return '';
    }
+   throw StateError("$m");
  });
 
   return " E'$escaped' ";
@@ -63,8 +64,10 @@ class DefaultTypeConverter implements TypeConverter {
     if (type != null)
       type = type.toLowerCase();
   
-    if (type == 'text' || type == 'string')
-      return encodeString(value.toString());
+    if (type == 'text' || type == 'string') {
+      if (value is! String) throwError(); //play safe
+      return encodeString(value);
+    }
   
     if (type == 'integer'
         || type == 'smallint'

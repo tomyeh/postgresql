@@ -13,7 +13,7 @@ class MockServerBackendImpl implements Backend {
       log.add(new Packet(clientDestroyed, []));
     };
 
-    mocket.onAdd = (List<int> data) {
+    mocket.onAdd = (Uint8List data) {
       received.add(data);
       log.add(new Packet(toServer, data));
       if (_waitForClient != null) {
@@ -30,7 +30,7 @@ class MockServerBackendImpl implements Backend {
   final Mocket mocket = new Mocket();
 
   final List<Packet> log = new List<Packet>();
-  final List<List<int>> received = new List<List<int>>();
+  final List<Uint8List> received = new List<Uint8List>();
 
   bool _isClosed = true;
   bool _isDestroyed = true;
@@ -60,7 +60,7 @@ class MockServerBackendImpl implements Backend {
 
   /// Send data over the socket from the mock server to the client listening
   /// on the socket.
-  void sendToClient(List<int> data) {
+  void sendToClient(Uint8List data) {
     log.add(new Packet(toClient, data));
     mocket._controller.add(data);
   }
@@ -103,14 +103,14 @@ class MockServerImpl implements MockServer {
   }
 }
 
-class Mocket extends StreamView<List<int>> implements Socket {
-  factory Mocket() => new Mocket._private(new StreamController<List<int>>());
+class Mocket extends StreamView<Uint8List> implements Socket {
+  factory Mocket() => new Mocket._private(new StreamController<Uint8List>());
 
-  Mocket._private(StreamController<List<int>> ctl)
+  Mocket._private(StreamController<Uint8List> ctl)
       : _controller = ctl,
         super(ctl.stream);
 
-  final StreamController<List<int>> _controller;
+  final StreamController<Uint8List> _controller;
 
   bool _isDone = false;
 
@@ -129,6 +129,10 @@ class Mocket extends StreamView<List<int>> implements Socket {
     _isDone = true;
     onDestroy();
   }
+
+  Uint8List getRawOption(RawSocketOption option) {return null;}
+
+  void setRawOption(RawSocketOption option) {}
 
   void add(List<int> data) => onAdd(data);
 
