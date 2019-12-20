@@ -1,7 +1,7 @@
 ### Version 0.5.3
 
 * Support BigInt.
-    * Note: `_PG_NUMERIC` will be converted to `BigInt` (instead of String)
+    * Note: `_PG_NUMERIC` will be converted to `BigInt`, if possible (instead of `String`). Otherwise, it is converted to a `String` instance.
 
 ### Version 0.5.2
 

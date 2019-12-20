@@ -242,7 +242,11 @@ class DefaultTypeConverter implements TypeConverter {
         return json.decode(value);
   
       case _PG_NUMERIC:
-        return BigInt.parse(value);
+        try {
+          return BigInt.parse(value);
+        } catch (_) {
+        }
+        return value;
 
       // Not implemented yet - return a string.
       case _PG_MONEY:
