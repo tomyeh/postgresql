@@ -135,7 +135,7 @@ class DefaultTypeConverter implements TypeConverter {
     if (value is DateTime)
       return encodeDateTime(value, isDateOnly: false);
   
-    if (value is bool)
+    if (value is bool || value is BigInt)
       return value.toString();
   
     if (value is Map)
@@ -241,12 +241,14 @@ class DefaultTypeConverter implements TypeConverter {
       case _PG_JSONB:
         return json.decode(value);
   
+      case _PG_NUMERIC:
+        return BigInt.parse(value);
+
       // Not implemented yet - return a string.
       case _PG_MONEY:
       case _PG_TIMETZ:
       case _PG_TIME:
       case _PG_INTERVAL:
-      case _PG_NUMERIC:
   
       //TODO arrays
       //TODO binary bytea

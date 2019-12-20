@@ -1,3 +1,8 @@
+### Version 0.5.3
+
+* Support BigInt.
+    * Note: `_PG_NUMERIC` will be converted to `BigInt` (instead of String)
+
 ### Version 0.5.2
 
 * Upgrade to Dart 2.5
