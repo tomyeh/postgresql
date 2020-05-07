@@ -163,6 +163,10 @@ class DefaultTypeConverter implements TypeConverter {
   
     if (datetime == null)
       return 'null';
+    else if(datetime == pgMinDateTime)
+      return '-infinity';
+    else if(datetime == pgMaxDateTime)
+      return 'infinity';
 
     var string = datetime.toIso8601String();
 
@@ -268,12 +272,10 @@ class DefaultTypeConverter implements TypeConverter {
     // This restriction could be relaxed by using a more advanced date library
     // capable of creating DateTimes for a non-local time zone.
 
-    if (value == 'infinity' || value == '-infinity') {
-      throw _error('Server returned a timestamp with value '
-          '"$value", this cannot be represented as a dart date object, if '
-          'infinity values are required, rewrite the sql query to cast the '
-          'value to a string, i.e. col::text.', getConnectionName);
-    }
+    if (value == '-infinity')
+      return pgMinDateTime;
+    else if(value == 'infinity')
+      return pgMaxDateTime;
 
     var formattedValue = value;
 

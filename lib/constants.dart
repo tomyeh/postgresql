@@ -35,3 +35,9 @@ const
     pePoolStopped = 4002,
     peConnectionClosed = 4003,
     peConnectionFailed = 40004; //miscellaneous connection errors (excluding SQL statement errors)
+
+// pg '-infinity' and 'infinity' representation
+// DateTimes can represent time values that are at a distance of at most 100,000,000
+// days from epoch (1970-01-01 UTC): -271821-04-20 to 275760-09-13.
+DateTime pgMinDateTime = DateTime.utc(-271821,04,20);
+DateTime pgMaxDateTime = DateTime.utc(275760,09,13);
