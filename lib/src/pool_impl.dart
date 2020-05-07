@@ -167,6 +167,17 @@ class PoolImpl implements Pool {
     return _connectionsView;
   }
 
+  /// Number of the pooled connections.
+  int get pooledConnectionCount => _connections.length;
+  /// Number of busy connections.
+  int get busyConnectionCount {
+    int count = 0;
+    for (final conn in _connections)
+      if (conn._state != available)
+        ++count;
+    return count;
+  }
+
   int get waitQueueLength => _waitQueue.length;
   
   Stream<pg.Message> get messages => _messages.stream;

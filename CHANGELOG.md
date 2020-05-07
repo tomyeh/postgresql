@@ -1,3 +1,7 @@
+### Version 0.5.4
+
+* `PoolImpl` with two new methods: `pooledConnectionCount` and `busyConnectionCount`
+
 ### Version 0.5.3
 
 * Support BigInt.
