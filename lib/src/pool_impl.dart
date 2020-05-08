@@ -270,7 +270,7 @@ class PoolImpl implements Pool {
       for (int i = _connections.length;
           _connections.length > settings.minConnections
           && --i >= 0;) //reverse since it might be removed
-        _checkIdleTimeout(_connections[i]);
+        _checkIdleTimeout(_connections[i], i);
 
       // This shouldn't be necessary, but should help fault tolerance. 
       _processWaitQueue();
@@ -282,14 +282,14 @@ class PoolImpl implements Pool {
     }
   }
 
-  void _checkIdleTimeout(PooledConnectionImpl pconn) {
+  void _checkIdleTimeout(PooledConnectionImpl pconn, int i) {
     if (pconn._state == available
     && _isExpired(pconn._released ?? pconn._established, settings.idleTimeout)) {
-      _destroyConnection(pconn);
+      _destroyConnection(pconn, i);
     }
   }
   
-  void _checkIfLeaked(PooledConnectionImpl pconn) {
+  void _checkIfLeaked(PooledConnectionImpl pconn, int i) {
     if (!pconn._isLeaked
         && pconn._state != available
         && pconn._obtained != null
@@ -550,16 +550,20 @@ class PoolImpl implements Pool {
   bool _isExpired(DateTime time, Duration timeout) 
     => new DateTime.now().difference(time) > timeout;
   
-  void _destroyConnection(PooledConnectionImpl pconn) {
+  void _destroyConnection(PooledConnectionImpl pconn, [int i]) {
     if (pconn._connection != null) pconn._connection.close();
     pconn._state = connClosed;
 
     //revere order since we clean up from the end
-    for (int i = _connections.length; --i >= 0;)
-      if (pconn == _connections[i]) {
-        _connections.removeAt(i);
-        break;
-      }
+    if (i != null && identical(pconn, _connections[i])) {
+      _connections.removeAt(i);
+    } else {
+      for (int i = _connections.length; --i >= 0;)
+        if (identical(pconn, _connections[i])) {
+          _connections.removeAt(i);
+          break;
+        }
+    }
   }
   
   Future stop() {
@@ -591,9 +595,9 @@ class PoolImpl implements Pool {
 
     var stopwatch = new Stopwatch()..start();
     while (_connections.isNotEmpty) {
-      _forEachConnection((pconn) {
+      _forEachConnection((pconn, i) {
         if (pconn._state == available)
-          _destroyConnection(pconn);
+          _destroyConnection(pconn, i);
       });
 
       await new Future.delayed(new Duration(milliseconds: 100), () => null);
@@ -610,8 +614,8 @@ class PoolImpl implements Pool {
     _state = stopped;
   }
 
-  void _forEachConnection(f(PooledConnectionImpl pconn)) {
+  void _forEachConnection(f(PooledConnectionImpl pconn, int i)) {
     for (int i = _connections.length; --i >= 0;) //reverse since it might be removed
-      f(_connections[i]);
+      f(_connections[i], i);
   }
 }
