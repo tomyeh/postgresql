@@ -1,3 +1,8 @@
+### Version 0.5.5
+
+* `Pool.debugName` removed.
+* Make the pool more likely to *shrink*.
+
 ### Version 0.5.4
 
 * `PoolImpl` with two new methods: `pooledConnectionCount` and `busyConnectionCount`

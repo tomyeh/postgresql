@@ -118,9 +118,6 @@ abstract class Connection {
   /// The pid of the process the server started to handle this connection.
   int get backendPid;
   
-  /// The debug name passed into the connect function.
-  String get debugName;
-  
   /// The current state of the connection.
   ConnectionState get state;
 

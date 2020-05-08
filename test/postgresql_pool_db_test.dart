@@ -150,7 +150,7 @@ main() {
 //         });
 //    
     new Timer.periodic(secs(10), (t) {
-      pool.connect(debugName: 'leak!');
+      pool.connect(/*debugName: 'leak!'*/);
     });
         
      
