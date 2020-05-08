@@ -136,17 +136,14 @@ class PoolImpl implements Pool {
   //TODO Consider using a list instead. removeAt(0); instead of removeFirst().
   // Since the list will be so small there is not performance benefit using a
   // queue.
-  final Queue<Completer<PooledConnectionImpl>> _waitQueue =
-      new Queue<Completer<PooledConnectionImpl>>();
+  final _waitQueue = new Queue<Completer<PooledConnectionImpl>>();
 
   Timer _heartbeatTimer;
   Duration _heartbeatDuration;
   Future _stopFuture;
   
-  final StreamController<pg.Message> _messages =
-      new StreamController<pg.Message>.broadcast();
-
-  final List<PooledConnectionImpl> _connections = new List<PooledConnectionImpl>();
+  final _messages = new StreamController<pg.Message>.broadcast();
+  final _connections = new List<PooledConnectionImpl>();
   
   List<PooledConnectionImpl> _connectionsView; 
   
