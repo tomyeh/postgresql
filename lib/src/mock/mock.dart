@@ -140,7 +140,7 @@ class MockConnection implements pg.Connection {
   Stream<pg.Message> get unhandled => messages;
   StreamController<pg.Message> messagesController = new StreamController.broadcast();
 
-  Future runInTransaction(Future operation(), [pg.Isolation isolation])
+  Future<T> runInTransaction<T>(Future<T> operation(), [pg.Isolation isolation])
     => throw new UnimplementedError();
 
 }

@@ -99,7 +99,7 @@ abstract class Connection {
 
   /// Allow multiple queries to be run in a transaction. The user must wait for
   /// runInTransaction() to complete before making any further queries.
-  Future runInTransaction(Future operation(), [Isolation isolation]);
+  Future<T> runInTransaction<T>(Future<T> operation(), [Isolation isolation]);
 
 
   /// Close the current [Connection]. It is safe to call this multiple times.

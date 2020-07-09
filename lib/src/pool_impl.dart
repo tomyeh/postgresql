@@ -53,7 +53,7 @@ class ConnectionDecorator implements pg.Connection {
       ? throw _error('execute')
       : _conn.execute(sql, values);
 
-  Future runInTransaction(Future operation(),
+  Future<T> runInTransaction<T>(Future<T> operation(),
                           [pg.Isolation isolation = readCommitted])
     => _isReleased
         ? throw throw _error('runInTransaction')

@@ -1,3 +1,7 @@
+### Version 0.5.6
+
+* `Connect.runInTransaction` returns the result of the transaction operation.
+
 ### Version 0.5.5
 
 * `Pool.debugName` removed.
