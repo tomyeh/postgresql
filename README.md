@@ -240,10 +240,14 @@ Enter "\q" to quit from the psql console.
 
 BSD
 
+## Utilities
+
+* Transaction: https://github.com/rikulo/access
+
 ## Links
 
-http://www.postgresql.org/docs/9.2/static/index.html
-http://www.dartlang.org/
+* https://www.postgresql.org/docs/9.2/static/index.html
+* https://www.dartlang.org/
 
 ## Who Uses
 
