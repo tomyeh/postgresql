@@ -496,8 +496,9 @@ class ConnectionImpl implements Connection {
 
     try {
       await execute(begin);
-      await operation();
+      final result = await operation();
       await execute('commit');
+      return result;
     } catch (_) {
       await execute('rollback');
       rethrow;
