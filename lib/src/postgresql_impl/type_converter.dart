@@ -142,7 +142,7 @@ class DefaultTypeConverter implements TypeConverter {
       return encodeString(json.encode(value));
   
     if (value is List)
-      return encodeArray(value);
+      return encodeArray(value, getConnectionName);
   
     throw _error('Unsupported runtime type as query parameter '
         '(${value.runtimeType}).', getConnectionName);
@@ -155,10 +155,10 @@ class DefaultTypeConverter implements TypeConverter {
     return n.toString();
   }
   
-  String encodeArray(List value) {
-    //TODO implement postgresql array types
-    throw _error('Postgresql array types not implemented yet. '
-        'Pull requests welcome ;)', null);
+  String encodeArray(List value, getConnectionName()) {
+    return value
+      .map((e) => encodeValueDefault(e, getConnectionName: getConnectionName))
+      .join(', ');
   }
   
   String encodeDateTime(DateTime datetime, {bool isDateOnly}) {
