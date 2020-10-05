@@ -20,7 +20,7 @@ ex is PostgresqlException
 
 ## Basic usage
 
-* [API Reference](http://www.dartdocs.org/documentation/postgresql2/0.5.6)
+* [API Reference](http://www.dartdocs.org/documentation/postgresql2/0.5.7)
 
 ### Obtaining a connection
 
