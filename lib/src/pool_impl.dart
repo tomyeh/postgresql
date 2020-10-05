@@ -159,7 +159,7 @@ class PoolImpl implements Pool {
   int get busyConnectionCount {
     int count = 0;
     for (final conn in _connections)
-      if (conn._state != available)
+      if (conn._state == inUse)
         ++count;
     return count;
   }
