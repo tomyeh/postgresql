@@ -49,11 +49,15 @@ abstract class Pool {
   
   Future start();
   Future stop();
-  Future<pg.Connection> connect({String debugName});
+  Future<pg.Connection> connect();
   PoolState get state;
   Stream<pg.Message> get messages;
   List<PooledConnection> get connections;
   int get waitQueueLength;
+  /// Number of the pooled connections.
+  int get pooledConnectionCount;
+  /// Number of busy connections.
+  int get busyConnectionCount;
 }
 
 
@@ -200,10 +204,6 @@ abstract class PooledConnection {
   
   /// The pid of the postgresql handler.
   int get backendPid;
-
-  /// The name passed to connect which is printed in error messages to help
-  /// with debugging.
-  String get debugName;
 
   /// A unique id that updated whenever the connection is obtained.
   int get useId;

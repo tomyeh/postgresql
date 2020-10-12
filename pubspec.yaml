@@ -1,5 +1,5 @@
 name: postgresql2
-version: 0.5.1+1
+version: 0.5.7
 authors:
 - Greg Lowe <greg@vis.net.nz>
 - Tom Yeh <tomyeh@rikulo.org>
@@ -17,7 +17,7 @@ description: >
 homepage: https://github.com/tomyeh/postgresql
 
 environment:
-  sdk: '>=2.0.0-dev <3.0.0'
+  sdk: '>=2.5.0 <3.0.0'
 
 dependencies:
   crypto: ">=2.0.0"

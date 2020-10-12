@@ -486,7 +486,7 @@ class ConnectionImpl implements Connection {
     return query._rowsAffected;
   }
 
-  Future runInTransaction(Future operation(), [Isolation isolation = Isolation.readCommitted]) async {
+  Future<T> runInTransaction<T>(Future<T> operation(), [Isolation isolation = Isolation.readCommitted]) async {
 
     var begin = 'begin';
     if (isolation == Isolation.repeatableRead)
@@ -496,8 +496,9 @@ class ConnectionImpl implements Connection {
 
     try {
       await execute(begin);
-      await operation();
+      final result = await operation();
       await execute('commit');
+      return result;
     } catch (_) {
       await execute('rollback');
       rethrow;

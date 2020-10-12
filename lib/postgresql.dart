@@ -99,7 +99,7 @@ abstract class Connection {
 
   /// Allow multiple queries to be run in a transaction. The user must wait for
   /// runInTransaction() to complete before making any further queries.
-  Future runInTransaction(Future operation(), [Isolation isolation]);
+  Future<T> runInTransaction<T>(Future<T> operation(), [Isolation isolation]);
 
 
   /// Close the current [Connection]. It is safe to call this multiple times.
@@ -117,9 +117,6 @@ abstract class Connection {
   
   /// The pid of the process the server started to handle this connection.
   int get backendPid;
-  
-  /// The debug name passed into the connect function.
-  String get debugName;
   
   /// The current state of the connection.
   ConnectionState get state;

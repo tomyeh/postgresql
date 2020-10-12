@@ -112,14 +112,14 @@ _createMapValueWriter(Map map, String encodeValue(value, String type))
 
 class _Scanner {
   _Scanner(String source)
-      : _source = source,
+      : //_source = source,
         _r = new _CharReader(source) {
 
     if (_r.hasMore())
       _t = _read();
   }
 
-  final String _source;
+  //final String _source;
   final _CharReader _r;
   _Token _t;
 
