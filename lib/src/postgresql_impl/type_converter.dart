@@ -1,12 +1,11 @@
 part of postgresql.impl;
 
-const int _apos = 39;
-const int _return = 13;
-const int _newline = 10;
-const int _backslash = 92;
-const int _null = 0;
-
-final _escapeRegExp = new RegExp(r"['\r\n\\\u0000]"); //detect unsupported null
+/// Map of characters to escape.
+const escapes = const {
+  "'": r"\'", "\r": r"\r", "\n": r"\n", r"\": r"\\",
+  "\t": r"\t", "\b": r"\b", "\f": r"\f", "\u0000": "",
+};
+final _escapeRegExp = new RegExp(r"['\r\n\\\t\b\f\u0000]"); //detect unsupported null
 
 class RawTypeConverter extends DefaultTypeConverter {
    String encode(value, String type, {getConnectionName()})
@@ -16,25 +15,17 @@ class RawTypeConverter extends DefaultTypeConverter {
      getConnectionName()}) => value;
 }
 
-String encodeString(String s, {bool trimNull: false}) {
+/// Encodes the given string ([s]) into the format: ` E'xxx'`
+/// 
+/// > Note: the null character (`\u0000`) will be removed, since
+/// > PostgreSql won't accept it.
+String encodeString(String s, {@deprecated bool trimNull}) {
   if (s == null) return ' null ';
 
-  var escaped = s.replaceAllMapped(_escapeRegExp, (m) {
-   switch (s.codeUnitAt(m.start)) {
-     case _apos: return r"\'";
-     case _return: return r'\r';
-     case _newline: return r'\n';
-     case _backslash: return r'\\';
-     case _null:
-      if (!trimNull)
-        throw new PostgresqlException('Not allowed: null character', '');
-      return '';
-   }
-   throw StateError("$m");
- });
-
+  var escaped = s.replaceAllMapped(_escapeRegExp, _escape);
   return " E'$escaped' ";
 }
+String _escape(Match m) => escapes[m[0]];
 
 class DefaultTypeConverter implements TypeConverter {
     

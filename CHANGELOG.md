@@ -1,3 +1,7 @@
+### Version 0.5.8
+
+* `encodeString()` ignores the `trimNull` argument. Now it always removes the null characters.
+
 ### Version 0.5.7
 
 * `Pool.busyConnectionCount` counts only `inUse`.
