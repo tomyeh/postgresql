@@ -5,7 +5,9 @@ const escapes = const {
   "'": r"\'", "\r": r"\r", "\n": r"\n", r"\": r"\\",
   "\t": r"\t", "\b": r"\b", "\f": r"\f", "\u0000": "",
 };
-final _escapeRegExp = new RegExp(r"['\r\n\\\t\b\f\u0000]"); //detect unsupported null
+/// Characters that will be escapes.
+const escapePattern = r"'\r\n\\\t\b\f\u0000"; //detect unsupported null
+final _escapeRegExp = new RegExp("[$escapePattern]");
 
 class RawTypeConverter extends DefaultTypeConverter {
    String encode(value, String type, {getConnectionName()})
