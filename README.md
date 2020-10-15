@@ -105,7 +105,7 @@ final result2 = conn.query(
  { "ids": ids });
 ```
 
-It's always better to use `array[@arr]::type[]` syntax in query as it's error prone
+It's always better to use `array[@arr]::type[]` syntax in query as it's error proof
 to empty lists.
 
 ### Closing the connection
