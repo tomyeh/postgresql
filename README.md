@@ -75,6 +75,39 @@ conn.execute('insert into crayons values (@id, @color)',
 	.then((_) { print('done.'); });
 ```
 
+When providing a list of values as a query parameter there are two ways
+how to use the list. Either as a PostgreSQL list used as `in (val, val, ...)`
+or as a PostgreSQL array used as `= any(array[val, val, ...])`.
+
+```dart
+final ids = <int>[ 1, 2, 3 ];
+final result1 = conn.query(
+ "select * from table where id in (@ids)",
+ { "ids": ids });
+final result2 = conn.query(
+ "select * from table where id = any(array[@ids]::int[])",
+ { "ids": ids });
+```
+
+**Remember**: passing an empty list produces SQL syntax error as `in ()`
+is not valid. It's programmer's responsibility to
+validate the list before passing it to `in (@arr)` query parameter.
+In case of array syntax the empty list needs type cast.
+```dart
+final ids = <int>[];
+// will fail with ERROR 42601 syntax error at or near ")"
+final result1 = conn.query(
+ "select * from table where id in (@ids)",
+ { "ids": ids });
+// will fail with ERROR 42P18 cannot determine type of empty array
+final result2 = conn.query(
+ "select * from table where id = any(array[@ids])",
+ { "ids": ids });
+```
+
+It's always better to use `array[@arr]::type[]` syntax in query as it's error prone
+to empty lists.
+
 ### Closing the connection
 
 You must remember to call Connection.close() when you're done. This won't be
