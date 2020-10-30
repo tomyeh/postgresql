@@ -11,12 +11,12 @@ import 'package:postgresql2/pool.dart';
 
 
 // I like my enums short and sweet, not long and typey.
-const PooledConnectionState connecting = PooledConnectionState.connecting;
-const PooledConnectionState available = PooledConnectionState.available;
-const PooledConnectionState reserved = PooledConnectionState.reserved;
-const PooledConnectionState testing = PooledConnectionState.testing;
-const PooledConnectionState inUse = PooledConnectionState.inUse;
-const PooledConnectionState connClosed = PooledConnectionState.closed;
+const connecting = PooledConnectionState.connecting,
+  available = PooledConnectionState.available,
+  reserved = PooledConnectionState.reserved,
+  testing = PooledConnectionState.testing,
+  inUse = PooledConnectionState.inUse,
+  connClosed = PooledConnectionState.closed;
 
 typedef Future<pg.Connection> ConnectionFactory(
     String uri,
@@ -203,11 +203,12 @@ class PoolImpl implements Pool {
     _state = running;
 
     //heartbeat is used to detect leak and destroy idle connection
-    _heartbeatDuration = settings.leakDetectionThreshold != null ?
-        new Duration(milliseconds: math.max(1000,
-            settings.leakDetectionThreshold.inMilliseconds ~/ 3)):
-        new Duration(seconds: math.max(60,
-            settings.idleTimeout.inSeconds ~/ 3));
+    final leakMilliseconds = settings.leakDetectionThreshold != null ?
+        math.max(1000, settings.leakDetectionThreshold.inMilliseconds ~/ 3):
+        500*60*1000; //bigger than possible [idleTimeout]
+    _heartbeatDuration = new Duration(milliseconds:
+        math.min(leakMilliseconds,
+          math.max(60000, settings.idleTimeout.inMilliseconds ~/ 3)));
     _heartbeat(); //start heartbeat
   }
   
@@ -552,11 +553,11 @@ class PoolImpl implements Pool {
     pconn._state = connClosed;
 
     //revere order since we clean up from the end
-    if (i != null && identical(pconn, _connections[i])) {
+    if (i != null && pconn == _connections[i]) {
       _connections.removeAt(i);
     } else {
       for (int i = _connections.length; --i >= 0;)
-        if (identical(pconn, _connections[i])) {
+        if (pconn == _connections[i]) {
           _connections.removeAt(i);
           break;
         }
