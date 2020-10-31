@@ -21,7 +21,7 @@ class RawTypeConverter extends DefaultTypeConverter {
 /// 
 /// > Note: the null character (`\u0000`) will be removed, since
 /// > PostgreSql won't accept it.
-String encodeString(String s, {@deprecated bool trimNull}) {
+String encodeString(String s) {
   if (s == null) return ' null ';
 
   var escaped = s.replaceAllMapped(_escapeRegExp, _escape);
@@ -44,101 +44,86 @@ class DefaultTypeConverter implements TypeConverter {
   }
   
   String encodeValue(value, String type, {getConnectionName()}) {
-  
     if (type == null)
       return encodeValueDefault(value, getConnectionName: getConnectionName);
-  
-    throwError() => throw _error('Invalid runtime type and type modifier '
-        'combination (${value.runtimeType} to $type).', getConnectionName);
-  
     if (value == null)
       return 'null';
-  
-    if (type != null)
-      type = type.toLowerCase();
-  
-    if (type == 'text' || type == 'string') {
-      if (value is! String) throwError(); //play safe
-      return encodeString(value);
-    }
-  
-    if (type == 'integer'
-        || type == 'smallint'
-        || type == 'bigint'
-        || type == 'serial'
-        || type == 'bigserial'
-        || type == 'int') {
-      if (value is! int) throwError();
-      return encodeNumber(value);
-    }
-  
-    if (type == 'real'
-        || type == 'double'
-        || type == 'num'
-        || type == 'number') {
-      if (value is! num) throwError();
-      return encodeNumber(value);
-    }
-  
+
+    switch (type) {
+      case 'text': case 'string':
+        if (value is String)
+          return encodeString(value);
+        break;
+
+      case 'integer': case 'smallint':
+      case 'bigint': case 'serial':
+      case 'bigserial': case 'int':
+        if (value is int || value is BigInt)
+          return encodeNumber(value);
+        break;
+
+      case 'real': case 'double':
+      case 'num': case 'number':
+        if (value is num)
+          return encodeNumber(value);
+        break;
+
     // TODO numeric, decimal
+
+      case 'boolean': case 'bool':
+        if (value is bool)
+          return value.toString();
+        break;
+
+      case 'timestamp': case 'timestamptz': case 'datetime':
+        if (value is DateTime)
+          return encodeDateTime(value, isDateOnly: false);
+        break;
+
+      case 'date':
+        if (value is DateTime)
+          return encodeDateTime(value, isDateOnly: true);
+        break;
   
-    if (type == 'boolean' || type == 'bool') {
-      if (value is! bool) throwError();
-      return value.toString();
+      case 'json': case 'jsonb':
+        return encodeJson(value);
+  
+      case 'array':
+        if (value is List)
+          return encodeArray(value);
+        break;
+
+      case 'bytea':
+        if (value is List<int>) return encodeBytea(value);
+        break;
+
+      default:
+        final t = type.toLowerCase(); //backward compatible
+        if (t != type)
+          return encodeValue(value, t, getConnectionName: getConnectionName);
+
+        throw _error('Unknown type name: $type.', getConnectionName);
     }
-  
-    if (type == 'timestamp' || type == 'timestamptz' || type == 'datetime') {
-      if (value is! DateTime) throwError();
-      return encodeDateTime(value, isDateOnly: false);
-    }
-  
-    if (type == 'date') {
-      if (value is! DateTime) throwError();
-      return encodeDateTime(value, isDateOnly: true);
-    }
-  
-    if (type == 'json' || type == 'jsonb')
-      return encodeString(json.encode(value));
-  
-  //  if (type == 'bytea') {
-  //    if (value is! List<int>) throwError();
-  //    return encodeBytea(value);
-  //  }
-  //
-  //  if (type == 'array') {
-  //    if (value is! List) throwError();
-  //    return encodeArray(value);
-  //  }
-  
-    throw _error('Unknown type name: $type.', getConnectionName);
+
+    throw _error('Invalid runtime type and type modifier: '
+        '${value.runtimeType} to $type.', getConnectionName);
   }
   
   // Unspecified type name. Use default type mapping.
   String encodeValueDefault(value, {getConnectionName()}) {
-  
     if (value == null)
       return 'null';
-  
     if (value is num)
       return encodeNumber(value);
-  
     if (value is String)
       return encodeString(value);
-  
     if (value is DateTime)
       return encodeDateTime(value, isDateOnly: false);
-  
     if (value is bool || value is BigInt)
       return value.toString();
-  
-    if (value is Map)
-      return encodeString(json.encode(value));
-  
     if (value is List)
       return encodeArray(value);
-  
-    throw _error('Unsupported runtime type as query parameter '
-        '(${value.runtimeType}).', getConnectionName);
+    return encodeJson(value);
   }
   
   String encodeNumber(num n) {
@@ -197,10 +182,11 @@ class DefaultTypeConverter implements TypeConverter {
 
     return "'${string}'";
   }
-  
+
+  String encodeJson(value) => encodeString(jsonEncode(value));
+
   // See http://www.postgresql.org/docs/9.0/static/sql-syntax-lexical.html#SQL-SYNTAX-STRINGS-ESCAPE
   String encodeBytea(List<int> value) {
-  
     //var b64String = ...;
     //return " decode('$b64String', 'base64') ";
   
