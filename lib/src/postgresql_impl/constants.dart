@@ -78,6 +78,7 @@ String _authTypeAsString(int authType) {
 
 /// Constants for postgresql datatypes
 /// Ref: https://jdbc.postgresql.org/development/privateapi/constant-values.html
+/// Also: select typname, typcategory, typelem, typarray from pg_type where typname LIKE '%int%'
 const int
   _BIT = 1560,
   _BIT_ARRAY = 1561,

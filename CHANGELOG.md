@@ -1,6 +1,8 @@
 ### Version 0.6.0
 
 * Array type with single dimension supported.
+* `isUtcTimeZone` removed from `DefaultTypeConverter.decodeDateTime()` and related functions.
+* `DefaultTypeConverter.decodeDateTime()` converts the DateTime instance to local time by calling `DateTime.toLocal()`.
 
 ### Version 0.5.8
 

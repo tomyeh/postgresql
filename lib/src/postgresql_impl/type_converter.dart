@@ -276,6 +276,9 @@ class DefaultTypeConverter implements TypeConverter {
     _XML_ARRAY: _XML,
   };
 
+  /// Decodes [value] into a [DateTime] instance.
+  /// 
+  /// Note: it will convert it to local time (via [DateTime.toLocal])
   DateTime decodeDateTime(String value, int pgType, {getConnectionName()}) {
     // Built in Dart dates can either be local time or utc. Which means that the
     // the postgresql timezone parameter for the connection must be either set
@@ -283,12 +286,11 @@ class DefaultTypeConverter implements TypeConverter {
     // This restriction could be relaxed by using a more advanced date library
     // capable of creating DateTimes for a non-local time zone.
 
-    if (value == 'infinity' || value == '-infinity') {
-      throw _error('A timestamp value "$value", this cannot be represented '
+    if (value == 'infinity' || value == '-infinity')
+      throw _error('A timestamp value "$value", cannot be represented '
           'as a Dart object.', getConnectionName);
           //if infinity values are required, rewrite the sql query to cast
-          //the value to a string, i.e. col::text.
-    }
+          //the value to a string, i.e. your_column::text.
 
     var formattedValue = value;
 
@@ -303,7 +305,7 @@ class DefaultTypeConverter implements TypeConverter {
       formattedValue = formattedValue + 'T00:00:00Z';
     }
 
-    return DateTime.parse(formattedValue);
+    return DateTime.parse(formattedValue).toLocal();
   }
 
   /// Decodes an array value, [value]. Each item of it is [pgType].
