@@ -39,8 +39,7 @@ class ConnectionImpl implements Connection {
   int _msgType;
   int _msgLength;
   //int _secretKey;
-  bool _isUtcTimeZone = false;
-  
+
   int _backendPid;
   final _getDebugName;
   
@@ -456,9 +455,7 @@ class ConnectionImpl implements Connection {
     _parameters[name] = value;
     
     // Cache this value so that it doesn't need to be looked up from the map.
-    if (name == 'TimeZone') {
-      _isUtcTimeZone = value == 'UTC';
-    }
+    //if (name == 'TimeZone') _isUtcTimeZone = value == 'UTC';
     
     if (name == 'client_encoding' && value != 'UTF8') {
       warn('client_encoding parameter must remain as UTF8 for correct string ' 
@@ -612,7 +609,7 @@ class ConnectionImpl implements Connection {
       var str = _buffer.readUtf8StringN(colSize);
       
       var value = _typeConverter.decode(str, col.fieldType, 
-          isUtcTimeZone: _isUtcTimeZone, getConnectionName: _getDebugName);
+          getConnectionName: _getDebugName);
       
       _query._rowData[index] = value;
     }

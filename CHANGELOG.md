@@ -1,3 +1,7 @@
+### Version 0.6.0
+
+* Array type with single dimension supported.
+
 ### Version 0.5.8
 
 * `encodeString()` ignores the `trimNull` argument. Now it always removes the null characters.

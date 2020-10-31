@@ -1,26 +1,20 @@
 # PostgreSQL database driver for Dart
 
-> A temporary fork of [Greg's PostgreSQL driver](https://github.com/xxgreg/postgresql)
-> using conserved substitution respecting strings and @@ operators,
-> also optimizing the pool implementation aggressivly.
->
-> `encodeString()` supports trimNull to work around the null character issue
->
-> `Pool.connect()` returns as soon as possible when failed to connect to
-> database. Also, it resumes if the connection is back.
-> Caller can detect it as follows:
+> A fork of [Greg's PostgreSQL driver](https://github.com/xxgreg/postgresql).
 
-```
-ex is PostgresqlException
-&& const [PE_CONNECTION_TIMEOUT, PE_CONNECTION_CLOSED,
-		PE_CONNECTION_FAILED, PE_POOL_STOPPED].contains(ex.exception)
-```
+**Differences**
 
-[![Build Status](https://drone.io/github.com/xxgreg/postgresql/status.png)](https://drone.io/github.com/xxgreg/postgresql/latest)
+* Array type with single dimension supported
+
+* The `@@` operators supported.
+
+* `DefaultTypeConverter.encodeValueDefault()` assume all unknown types as JSON.
+
+* `Pool.connect()` throws an exception immediately if failed to connect to database.
 
 ## Basic usage
 
-* [API Reference](http://www.dartdocs.org/documentation/postgresql2/0.5.8)
+* [API Reference](http://www.dartdocs.org/documentation/postgresql2/0.6.0)
 
 ### Obtaining a connection
 
@@ -188,7 +182,7 @@ Add postgresql to your pubspec.yaml file, and run pub install.
 ```
 name: postgresql_example
 dependencies:
-  postgresql: any
+  postgresql2: any
 ```
 
 ```dart
@@ -235,6 +229,22 @@ psql -h localhost -U testdb -W
 ```
 
 Enter "\q" to quit from the psql console.
+
+## Notes
+
+### Substitution of Array types
+
+Like others, you can specify the `array` type in a substitution. For example,
+
+```insert into foo values(@name, @tags:array)```
+
+However, if the list can be empty, you have to specify the type explicitly since PostgreSQL cannot determine type of empty array. For example,
+
+```insert into foo values(@name, @tags:text_array)```
+
+It is equivalent to the following:
+
+```insert into foo values(@name, @tags:array::text[])```
 
 ## License
 

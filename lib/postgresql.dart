@@ -278,8 +278,7 @@ abstract class TypeConverter {
   String encode(value, String type, {getConnectionName()});
 
   /// Convert a string recieved from the database into a dart object.
-  Object decode(String value, int pgType,
-                {bool isUtcTimeZone, getConnectionName()});
+  Object decode(String value, int pgType, {getConnectionName()});
 }
 
 
