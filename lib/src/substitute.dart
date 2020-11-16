@@ -1,68 +1,69 @@
 library postgresql.substitute;
 
+import 'dart:collection';
+import 'package:charcode/ascii.dart';
+
 const int _TOKEN_TEXT = 1;
 const int _TOKEN_IDENT = 3;
-
-const int _a = 97;
-const int _A = 65;
-const int _z = 122;
-const int _Z = 90;
-const int _0 = 48;
-const int _9 = 57;
-const int _at = 64;
-const int _colon = 58;
-const int _underscore = 95;
-const int _quot = 34, _squot = 39, _dollar = 36, /*_gt = 62,*/ _backslash = 92;
 
 class _Token {
   _Token(this.type, this.value, [this.typeName]);
   final int type;
   final String value;
   final String typeName;
+
   String toString() => '${['?', 'Text', 'At', 'Ident'][type]} "$value" "$typeName"';
 }
 
-bool isIdentifier(int charCode) => (charCode >= _a && charCode <= _z)
-                                    || (charCode >= _A && charCode <= _Z)
-                                  || (charCode >= _0 && charCode <= _9)
-                                  || (charCode == _underscore);
+class _Pair<F, S> {
+  final F first;
+  final S second;
 
-bool isDigit(int charCode) => (charCode >= _0 && charCode <= _9);
+  const _Pair([this.first, this.second]);
+
+  @override
+  int get hashCode => first.hashCode ^ second.hashCode;
+  @override
+  bool operator==(o) => o is _Pair && first == o.first && second == o.second;
+}
+
+typedef String _ValueEncoder(String identifier, String type);
+
+bool isIdentifier(int charCode)
+  => (charCode >= $a && charCode <= $z)
+  || (charCode >= $A && charCode <= $Z)
+  || (charCode >= $0 && charCode <= $9)
+  || (charCode == $underscore);
+
+bool isDigit(int charCode) => (charCode >= $0 && charCode <= $9);
 
 class ParseException {
   ParseException(this.message, [this.source, this.index]);
   final String message;
   final String source;
   final int index;
-  String toString() => (source == null || index == null)
-      ? message
+  String toString() => (source == null || index == null) ? message
       : '$message At character: $index, in source "$source"';
 }
 
 String substitute(String source, values, String encodeValue(value, String type)) {
+  final valueEncoder =
+      values is List ? _createListValueEncoder(values, encodeValue):
+      values is Map ? _createMapValueEncoder(values, encodeValue):
+      values == null ? _nullValueEncoder:
+        throw new ArgumentError('Unexpected type.');
 
-  var valueWriter;
-
-  if (values is List)
-    valueWriter = _createListValueWriter(values, encodeValue);
-
-  else if (values is Map)
-    valueWriter = _createMapValueWriter(values, encodeValue);
-
-  else if (values == null)
-    valueWriter = (_, _1, _2)
-        => throw new ParseException('Template contains a parameter, but no values were passed.');
-
-  else
-    throw new ArgumentError('Unexpected type.');
-
-  var buf = new StringBuffer();
-  var s = new _Scanner(source);
+  final buf = new StringBuffer(),
+    s = new _Scanner(source),
+    cache = new HashMap();
 
   while (s.hasMore()) {
     var t = s.read();
     if (t.type == _TOKEN_IDENT) {
-      valueWriter(buf, t.value, t.typeName);
+      final id = t.value,
+        typeName = t.typeName,
+        key = new _Pair(id, typeName);
+      buf.write(cache[key] ?? (cache[key] = valueEncoder(id, typeName)));
     } else {
       buf.write(t.value);
     }
@@ -71,43 +72,27 @@ String substitute(String source, values, String encodeValue(value, String type))
   return buf.toString();
 }
 
-_createListValueWriter(List list, String encodeValue(value, String type))
-  => (StringSink buf, String identifier, String type) {
+String _nullValueEncoder(_, _1)
+=> throw new ParseException('Template contains a parameter, but no values were passed.');
 
+_ValueEncoder _createListValueEncoder(List list, String encodeValue(value, String type))
+  => (String identifier, String type) {
   int i = int.tryParse(identifier) ??
       (throw new ParseException('Expected integer parameter.'));
 
   if (i < 0 || i >= list.length)
     throw new ParseException('Substitution token out of range.');
 
-  var s = encodeValue(list[i], type);
-  buf.write(s);
+  return encodeValue(list[i], type);
 };
 
-_createMapValueWriter(Map map, String encodeValue(value, String type))
-  => (StringSink buf, String identifier, String type) {
+_ValueEncoder _createMapValueEncoder(Map map, String encodeValue(value, String type))
+  => (String identifier, String type) {
+  final val = map[identifier];
+  if (val == null && !map.containsKey(identifier))
+    throw new ParseException("Substitution token not passed: $identifier.");
 
-  var val;
-
-  if (isDigit(identifier.codeUnits.first)) {
-    int i = int.tryParse(identifier) ??
-        (throw new ParseException('Expected integer parameter.'));
-
-    if (i < 0 || i >= map.values.length)
-      throw new ParseException("Substitution token out of range.");
-
-    val = map.values.elementAt(i);
-
-  } else {
-
-    if (!map.keys.contains(identifier))
-      throw new ParseException("Substitution token not passed: $identifier.");
-
-    val = map[identifier];
-  }
-
-  var s = encodeValue(val, type);
-  buf.write(s);
+  return encodeValue(val, type);
 };
 
 class _Scanner {
@@ -138,7 +123,7 @@ class _Scanner {
     assert(_r.hasMore());
 
     // '@@', '@ident', or '@ident:type'
-    if (_r.peek() == _at) {
+    if (_r.peek() == $at) {
       _r.read();
 
       if (!_r.hasMore())
@@ -155,7 +140,7 @@ class _Scanner {
 
       // Optional type modifier
       var type;
-      if (_r.peek() == _colon) {
+      if (_r.peek() == $colon) {
         _r.read();
         type = _r.readWhile(isIdentifier);
       }
@@ -174,24 +159,24 @@ class _Scanner {
     return _r.readWhile((int c) {
       if (backslash) {
         backslash = false;
-      } else if (c == _backslash) {
+      } else if (c == $backslash) {
         backslash = true;
 
       } else if (esc == null) {
         switch (c) {
-          case _at:
+          case $at:
             return false; //found!
-          case _squot:
-          case _quot:
-          case _dollar:
+          case $single_quote:
+          case $quot:
+          case $dollar:
             esc = c;
-            if (c == _dollar)
+            if (c == $dollar)
               ndollar = 3; //$tag$string$tag$
             break;
         }
 
       } else if (c == esc) {
-        if (c != _dollar || --ndollar == 0)
+        if (c != $dollar || --ndollar == 0)
           esc = null;
       }
 

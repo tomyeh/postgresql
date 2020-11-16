@@ -1,3 +1,7 @@
+### Version 0.7.0
+
+* **Breaking**: the substition with a Map instance won't treat number identifiers specially. For example, if `@0` is specified, it will consider the identifier as `'0'` and retrieve `values['0']`.
+
 ### Version 0.6.0
 
 * Array type with single dimension supported.
