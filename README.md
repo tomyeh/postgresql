@@ -14,7 +14,7 @@
 
 ## Basic usage
 
-* [API Reference](http://www.dartdocs.org/documentation/postgresql2/0.6.0)
+* [API Reference](http://www.dartdocs.org/documentation/postgresql2/0.7.0)
 
 ### Obtaining a connection
 
@@ -252,7 +252,8 @@ BSD
 
 ## Utilities
 
-* Transaction: https://github.com/rikulo/access
+* Transaction management: https://github.com/rikulo/access
+* Entity management: https://github.com/rikulo/entity
 
 ## Links
 
