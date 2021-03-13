@@ -1,4 +1,4 @@
-### Version 0.7.1
+### Version 0.7.2
 
 * `freeConnections` introduced to control maximal number of connections kept in a pool.
 
