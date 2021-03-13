@@ -163,6 +163,9 @@ class PoolImpl implements Pool {
         ++count;
     return count;
   }
+  @override
+  int get maxConnectionCount => _maxConnCnt;
+  int _maxConnCnt = 0;
 
   int get waitQueueLength => _waitQueue.length;
   
@@ -224,6 +227,7 @@ class PoolImpl implements Pool {
     var pconn = new PooledConnectionImpl(this);
     pconn._state = connecting;
     _connections.add(pconn);
+    if (_connections.length > _maxConnCnt) _maxConnCnt = _connections.length;
 
     try {
       var conn = await _connectionFactory(
@@ -282,7 +286,9 @@ class PoolImpl implements Pool {
 
   void _checkIdleTimeout(PooledConnectionImpl pconn, int i) {
     if (pconn._state == available
-    && _isExpired(pconn._released ?? pconn._established, settings.idleTimeout)) {
+    && (_isExpired(pconn._released ?? pconn._established, settings.idleTimeout)
+        || (settings.freeConnections > 0
+            && _connections.length > settings.freeConnections))) {
       _destroyConnection(pconn, i);
     }
   }

@@ -58,6 +58,9 @@ abstract class Pool {
   int get pooledConnectionCount;
   /// Number of busy connections.
   int get busyConnectionCount;
+  /// The maximal number of concurrent connections that are ever made
+  /// since started.
+  int get maxConnectionCount;
 }
 
 
@@ -107,7 +110,14 @@ abstract class PoolSettings {
   /// Maximum number of connections. The pool will not exceed
   /// this number of database connections. Defaults to 10. 
   int get maxConnections;
-  
+
+  /// Maximum number of connections to keep in pool.
+  /// If number of connections exceeds [freeConnections], they will
+  /// be removed from the pool as soon as possible.
+  ///
+  /// Ignored if not a positive number. Defaults to 0.
+  int get freeConnections;
+
   /// If the pool cannot start within this time then return an
   /// error. Defaults to 30 seconds.
   Duration get startTimeout;

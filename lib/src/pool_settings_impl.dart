@@ -14,6 +14,7 @@ class PoolSettingsImpl implements PoolSettings {
       String poolName,
       this.minConnections: 5,
       this.maxConnections: 10,
+      this.freeConnections: 0,
       this.startTimeout: const Duration(seconds: 30),
       this.stopTimeout: const Duration(seconds: 30),
       this.establishTimeout: const Duration(seconds: 30),
@@ -34,6 +35,7 @@ class PoolSettingsImpl implements PoolSettings {
         String poolName,
         int minConnections,
         int maxConnections,
+        int freeConnections,
         Duration startTimeout,
         Duration stopTimeout,
         Duration establishTimeout,
@@ -51,6 +53,7 @@ class PoolSettingsImpl implements PoolSettings {
      poolName: poolName,
      minConnections: minConnections == null ? _default.minConnections : minConnections,
      maxConnections: maxConnections == null ? _default.maxConnections : maxConnections,
+     freeConnections: freeConnections == null ? _default.freeConnections : freeConnections,
      startTimeout: startTimeout == null ? _default.startTimeout : startTimeout,
      stopTimeout: stopTimeout == null ? _default.stopTimeout : stopTimeout,
      establishTimeout: establishTimeout == null ? _default.establishTimeout : establishTimeout,
@@ -72,6 +75,7 @@ class PoolSettingsImpl implements PoolSettings {
   final String poolName;
   final int minConnections;
   final int maxConnections;
+  final int freeConnections;
   final Duration startTimeout;
   final Duration stopTimeout;
   final Duration establishTimeout;
@@ -137,6 +141,7 @@ class PoolSettingsImpl implements PoolSettings {
         poolName: getString('poolName'),
         minConnections: getInt('minConnections'),
         maxConnections: getInt('maxConnections'),
+        freeConnections: getInt('freeConnections'),
         startTimeout: getDuration('startTimeout'),
         stopTimeout: getDuration('stopTimeout'),
         establishTimeout: getDuration('establishTimeout'),
@@ -158,6 +163,7 @@ class PoolSettingsImpl implements PoolSettings {
     if (poolName != null) m['poolName'] = poolName;
     if (minConnections != null) m['minConnections'] = minConnections;
     if (maxConnections != null) m['maxConnections'] = maxConnections;
+    if (freeConnections != null) m['freeConnections'] = freeConnections;
     if (startTimeout != null) m['startTimeout'] = fmt(startTimeout);
     if (stopTimeout != null) m['stopTimeout'] = fmt(stopTimeout);
     if (establishTimeout != null) m['establishTimeout'] = fmt(establishTimeout);
