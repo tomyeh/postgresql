@@ -209,9 +209,11 @@ class PoolImpl implements Pool {
     final leakMilliseconds = settings.leakDetectionThreshold != null ?
         math.max(1000, settings.leakDetectionThreshold.inMilliseconds ~/ 3):
         500*60*1000; //bigger than possible [idleTimeout]
-    _heartbeatDuration = new Duration(milliseconds:
-        math.min(leakMilliseconds,
-          math.max(60000, settings.idleTimeout.inMilliseconds ~/ 3)));
+    var hbMilliseconds = math.min(leakMilliseconds,
+          math.max(60000, settings.idleTimeout.inMilliseconds ~/ 3));
+    if (settings.freeConnections > 0) //more frequent if set
+      hbMilliseconds = math.min(60000, hbMilliseconds);
+    _heartbeatDuration = new Duration(milliseconds: hbMilliseconds);
     _heartbeat(); //start heartbeat
   }
   
