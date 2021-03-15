@@ -15,6 +15,7 @@ class PoolSettingsImpl implements PoolSettings {
       this.minConnections: 5,
       this.maxConnections: 10,
       this.freeConnections: 0,
+      this.onMaxConnection,
       this.startTimeout: const Duration(seconds: 30),
       this.stopTimeout: const Duration(seconds: 30),
       this.establishTimeout: const Duration(seconds: 30),
@@ -36,6 +37,7 @@ class PoolSettingsImpl implements PoolSettings {
         int minConnections,
         int maxConnections,
         int freeConnections,
+        void Function(int count) onMaxConnection,
         Duration startTimeout,
         Duration stopTimeout,
         Duration establishTimeout,
@@ -51,18 +53,19 @@ class PoolSettingsImpl implements PoolSettings {
    return new PoolSettingsImpl(
      databaseUri: databaseUri,
      poolName: poolName,
-     minConnections: minConnections == null ? _default.minConnections : minConnections,
-     maxConnections: maxConnections == null ? _default.maxConnections : maxConnections,
-     freeConnections: freeConnections == null ? _default.freeConnections : freeConnections,
-     startTimeout: startTimeout == null ? _default.startTimeout : startTimeout,
-     stopTimeout: stopTimeout == null ? _default.stopTimeout : stopTimeout,
-     establishTimeout: establishTimeout == null ? _default.establishTimeout : establishTimeout,
-     connectionTimeout: connectionTimeout == null ? _default.connectionTimeout : connectionTimeout,
-     idleTimeout: idleTimeout == null ? _default.idleTimeout : idleTimeout,
-     maxLifetime: maxLifetime == null ? _default.maxLifetime : maxLifetime,
-     leakDetectionThreshold: leakDetectionThreshold == null ? _default.leakDetectionThreshold : leakDetectionThreshold,
-     testConnections: testConnections == null ? _default.testConnections : testConnections,
-     restartIfAllConnectionsLeaked: restartIfAllConnectionsLeaked == null ? _default.restartIfAllConnectionsLeaked : restartIfAllConnectionsLeaked,
+     minConnections: minConnections ?? _default.minConnections,
+     maxConnections: maxConnections ?? _default.maxConnections,
+     freeConnections: freeConnections ?? _default.freeConnections,
+     onMaxConnection: onMaxConnection,
+     startTimeout: startTimeout  ?? _default.startTimeout,
+     stopTimeout: stopTimeout  ?? _default.stopTimeout,
+     establishTimeout: establishTimeout  ?? _default.establishTimeout,
+     connectionTimeout: connectionTimeout  ?? _default.connectionTimeout,
+     idleTimeout: idleTimeout  ?? _default.idleTimeout,
+     maxLifetime: maxLifetime  ?? _default.maxLifetime,
+     leakDetectionThreshold: leakDetectionThreshold  ?? _default.leakDetectionThreshold,
+     testConnections: testConnections  ?? _default.testConnections,
+     restartIfAllConnectionsLeaked: restartIfAllConnectionsLeaked  ?? _default.restartIfAllConnectionsLeaked,
      applicationName: applicationName,
      timeZone: timeZone); 
  }
@@ -70,12 +73,12 @@ class PoolSettingsImpl implements PoolSettings {
   // Ids will be unique for this isolate.
   static int _sequence = 0;
 
-  
   final String databaseUri;
   final String poolName;
   final int minConnections;
   final int maxConnections;
   final int freeConnections;
+  final void Function(int count) onMaxConnection;
   final Duration startTimeout;
   final Duration stopTimeout;
   final Duration establishTimeout;
@@ -142,6 +145,7 @@ class PoolSettingsImpl implements PoolSettings {
         minConnections: getInt('minConnections'),
         maxConnections: getInt('maxConnections'),
         freeConnections: getInt('freeConnections'),
+        //onMaxConnection: get?('onMaxConnection'),
         startTimeout: getDuration('startTimeout'),
         stopTimeout: getDuration('stopTimeout'),
         establishTimeout: getDuration('establishTimeout'),
@@ -164,6 +168,7 @@ class PoolSettingsImpl implements PoolSettings {
     if (minConnections != null) m['minConnections'] = minConnections;
     if (maxConnections != null) m['maxConnections'] = maxConnections;
     if (freeConnections != null) m['freeConnections'] = freeConnections;
+    //if (onMaxConnection != null) m['onMaxConnection'] = onMaxConnection;
     if (startTimeout != null) m['startTimeout'] = fmt(startTimeout);
     if (stopTimeout != null) m['stopTimeout'] = fmt(stopTimeout);
     if (establishTimeout != null) m['establishTimeout'] = fmt(establishTimeout);

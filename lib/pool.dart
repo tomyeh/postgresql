@@ -14,6 +14,7 @@ abstract class Pool {
     int minConnections,
     int maxConnections,
     int freeConnections,
+    void Function(int count) onMaxConnection,
     Duration startTimeout,
     Duration stopTimeout,
     Duration establishTimeout,
@@ -33,6 +34,7 @@ abstract class Pool {
               minConnections: minConnections,
               maxConnections: maxConnections,
               freeConnections: freeConnections,
+              onMaxConnection: onMaxConnection,
               startTimeout: startTimeout,
               stopTimeout: stopTimeout,
               establishTimeout: establishTimeout,
@@ -83,6 +85,7 @@ abstract class PoolSettings {
       int minConnections,
       int maxConnections,
       int freeConnections,
+      void Function(int count) onMaxConnection,
       Duration startTimeout,
       Duration stopTimeout,
       Duration establishTimeout,
@@ -120,6 +123,10 @@ abstract class PoolSettings {
   ///
   /// Ignored if not a positive number. Defaults to 0.
   int get freeConnections;
+
+  /// Callback when detecting the number of DB connections is larger
+  /// then the previous maximal number.
+  void Function(int count) get onMaxConnection;
 
   /// If the pool cannot start within this time then return an
   /// error. Defaults to 30 seconds.

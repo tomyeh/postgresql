@@ -229,7 +229,10 @@ class PoolImpl implements Pool {
     var pconn = new PooledConnectionImpl(this);
     pconn._state = connecting;
     _connections.add(pconn);
-    if (_connections.length > _maxConnCnt) _maxConnCnt = _connections.length;
+    if (_connections.length > _maxConnCnt) {
+      _maxConnCnt = _connections.length;
+      settings.onMaxConnection?.call(_maxConnCnt);
+    }
 
     try {
       var conn = await _connectionFactory(

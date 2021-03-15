@@ -1,3 +1,7 @@
+### Version 0.7.4
+
+* `Settings.onMaxConnection` introduced to monitor the usage of DB connections.
+
 ### Version 0.7.3
 
 * `freeConnections` introduced to control maximal number of connections kept in a pool.
