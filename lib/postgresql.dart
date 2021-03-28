@@ -4,7 +4,10 @@ import 'dart:async';
 import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart' as impl;
 
 export 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart'
-  show encodeString;
+  show encodeString, escapes, escapePattern,
+       DefaultTypeConverter;
+export 'package:postgresql2/src/substitute.dart'
+  show substitute;
 
 /// Connect to a PostgreSQL database.
 /// 
