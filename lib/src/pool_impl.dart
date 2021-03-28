@@ -92,7 +92,7 @@ class PooledConnectionImpl implements PooledConnection {
   bool _isLeaked = false;
   StackTrace _stackTrace;
   
-  final Duration _random = new Duration(seconds: new math.Random().nextInt(20));
+  final _extraLifetime = new Duration(milliseconds: _random.nextInt(20*1000));
   
   PooledConnectionState get state => _state;
 
@@ -133,10 +133,7 @@ class PoolImpl implements Pool {
   final pg.TypeConverter _typeConverter;
   final ConnectionFactory _connectionFactory;
   
-  //TODO Consider using a list instead. removeAt(0); instead of removeFirst().
-  // Since the list will be so small there is not performance benefit using a
-  // queue.
-  final _waitQueue = new Queue<Completer<PooledConnectionImpl>>();
+  final _waitQueue = <_Waiting>[];
 
   Timer _heartbeatTimer;
   Duration _heartbeatDuration;
@@ -225,7 +222,7 @@ class PoolImpl implements Pool {
     // This shouldn't be able to happen - but is here for robustness.
     if (_connections.length >= settings.maxConnections)
       return;
-    
+
     var pconn = new PooledConnectionImpl(this);
     pconn._state = connecting;
     _connections.add(pconn);
@@ -377,7 +374,7 @@ class PoolImpl implements Pool {
     var stopwatch = new Stopwatch()..start();
 
     var pconn = _getNextAvailable();
-    
+
     timeoutException() => new pg.PostgresqlException(
       'Obtaining connection from pool exceeded timeout: '
         '${settings.connectionTimeout}.\nAlive connections: ${_connections.length}', 
@@ -387,22 +384,25 @@ class PoolImpl implements Pool {
     // add the current connection request at the end of the
     // wait queue.
     if (pconn == null) {
-      var c = new Completer<PooledConnectionImpl>();
-      _waitQueue.add(c);
+      final waiting = new _Waiting(settings.freeConnections > 0
+          && settings.freeConnections <= _waitQueue.length + connections.length);
+          //running out [freeConnections]
+      _waitQueue.add(waiting);
       try {
         _processWaitQueue();
-        pconn = await c.future.timeout(timeout, onTimeout: () => throw timeoutException());
+        pconn = await waiting.c.future.timeout(timeout,
+            onTimeout: () => throw timeoutException());
       } finally {
-        _waitQueue.remove(c);
+        _waitQueue.remove(waiting);
       }
       assert(pconn.state == reserved);
     }
-    
+
     if (!settings.testConnections) {
       pconn._state = reserved;
       return pconn;
     }
-    
+
     pconn._state = testing;
         
     if (await _testConnection(pconn, timeout - stopwatch.elapsed, () => throw timeoutException()))
@@ -428,62 +428,95 @@ class PoolImpl implements Pool {
   }
 
   /// If connections are available, return them to waiting clients.
-  void _processWaitQueue([List previousResults]) {
-    
-    if (_state != running) return;
-    
-    if (_waitQueue.isEmpty) return;
+  void _processWaitQueue([_]) {
+    if (_state != running || _waitQueue.isEmpty) return;
 
     // Scan from 0 (same as [_getNextAvailable])
     for (int i = 0; _waitQueue.isNotEmpty && i < _connections.length; ++i) {
       var pconn = _connections[i];
       if (pconn._state == available) {
-        var completer = _waitQueue.removeFirst();
+        final waiting = _waitQueue.removeAt(0);
         pconn._state = reserved;
-        completer.complete(pconn);
+        waiting.c.complete(pconn);
       }
     }
 
-    //Handle the error(s) found in the previous invocation if any
+    if (_establishing) return; //once at a time
+
+    final count = _countToEstablish();
+    if (count <= 0) return;
+      //Count before calling [_establishForWaitQueue], which is async
+      //O/W, count can drop to zero and dead lock if under burst requests
+
+    _establishing = true;
+    _establishForWaitQueue(count)
+    .whenComplete(() {
+      _establishing = false;
+      _processWaitQueue();
+    });
+  }
+
+  Future _establishForWaitQueue(int count) async {
+    assert(count > 0);
+    assert(_establishing); //avoid dead loop (since [_processWaitQueue] might be called)
+
+    final ops = <Future>[];
+    while (--count >= 0)
+      ops.add(_establishConnectionSafely());
+
+    final results = await Future.wait(ops);
+    if (results == null) return;
+
+    //Handle the error(s)
     //Purpose: make the caller of [connect] to end as soon as possible.
     //Otherwise, it will wait until timeout
-    if (_waitQueue.isNotEmpty && previousResults != null) {
-      for (final r in previousResults)
-        if (r is SocketException) { //unable to connect DB server
-          final ex = new pg.PostgresqlException(
-              'Failed to establish connection', 
-              null, exception: peConnectionFailed);
-          while (_waitQueue.isNotEmpty)
-            _waitQueue.removeFirst().completeError(ex);
-        }
-    }
+    _processWaitQueue(); //dispatch succeeded conns, if any
 
-    // If required start more connection.
-    if (!_establishing) { //once at a time
-      final int count = math.min(_waitQueue.length,
-          settings.maxConnections - _connections.length);
-      if (count > 0) {
-        _establishing = true;
-        List results;
-        new Future.sync(() {
-          final List<Future> ops = new List(count);
-          for (int i = 0; i < count; i++) {
-            ops[i] = _establishConnectionSafely();
-          }
-          return Future.wait(ops);
-        })
-        .then((_) {
-          results = _;
-        })
-        .whenComplete(() {
-          _establishing = false;
-
-          _processWaitQueue(results); //do again; there might be more requests
-        });
+    for (final r in results)
+      if (r is SocketException) { //unable to connect DB server
+        final ex = new pg.PostgresqlException(
+            'Failed to establish connection', null, exception: peConnectionFailed);
+        while (_waitQueue.isNotEmpty)
+          _waitQueue.removeAt(0).c.completeError(ex);
+        return; //done
       }
-    }
   }
   bool _establishing = false;
+
+  /// Returns the number of connections to establish
+  int _countToEstablish() {
+    final maxc = settings.maxConnections - _connections.length;
+    var count = math.min(_waitQueue.length, maxc);
+
+    //Wait up to 700ms if running out of [freeConnections], if it > 0
+    if (count > 0 && settings.freeConnections > 0) {
+      count = math.min(count, settings.freeConnections - connections.length);
+      if (count <= 0) { //run out [freeConnections]
+        //Scan if requests wait too long (700ms)
+        final ref = new DateTime.now()
+          .subtract(const Duration(milliseconds: 700)); //wait up to 700ms
+        Duration duration;
+        count = 0;
+        for (final waiting in _waitQueue) {
+          if (waiting.at != null) {
+            duration = waiting.at.difference(ref);
+            if (duration > Duration.zero) break;
+          }
+          if (++count >= maxc) break; //no more than [maxConnections]
+        }
+
+        //if running out, start a timer to force it to process within 700ms
+        if (count == 0 && _tmProcessAgain == null) {
+          _tmProcessAgain = new Timer(duration, () {
+            _tmProcessAgain = null;
+            _processWaitQueue();
+          });
+        }
+      }
+    }
+    return count;
+  }
+  Timer _tmProcessAgain;
 
   /// Perfom a query to check the state of the connection.
   Future<bool> _testConnection(
@@ -531,23 +564,25 @@ class PoolImpl implements Pool {
     // command, this is simpler and probably nearly as fast (not that this
     // is likely to become a bottleneck anyway).
     if (conn.state != idle || conn.transactionState != none) {
-        _messages.add(new pg.ClientMessage(
-            severity: 'WARNING',
-            connectionName: pconn.name,
-            message: 'Connection returned in bad state. Removing from pool. '
-              'state: ${conn.state} '
-              'transactionState: ${conn.transactionState}.'));
+      _messages.add(new pg.ClientMessage(
+          severity: 'WARNING',
+          connectionName: pconn.name,
+          message: 'Connection returned in bad state. Removing from pool. '
+            'state: ${conn.state} '
+            'transactionState: ${conn.transactionState}.'));
 
-        _destroyConnection(pconn);
-        _establishConnectionSafely();
+      _destroyConnection(pconn);
+      _establishConnectionSafely()
+      .then(_processWaitQueue);
 
     // If connection older than lifetime setting then destroy.
     // A random number of seconds 0-20 is added, so that all connections don't
     // expire at exactly the same moment.
     } else if (settings.maxLifetime != null
-        && _isExpired(pconn._established, settings.maxLifetime + pconn._random)) {
+        && _isExpired(pconn._established, settings.maxLifetime + pconn._extraLifetime)) {
       _destroyConnection(pconn);
-      _establishConnectionSafely();
+      _establishConnectionSafely()
+      .then(_processWaitQueue);
 
     } else {
       pconn._released = new DateTime.now();
@@ -577,12 +612,12 @@ class PoolImpl implements Pool {
   
   Future stop() {
     if (state == stopped || state == initial) return null;
-      
+
     if (_stopFuture == null)
       _stopFuture = _stop();
     else
       assert(state == stopping);
-      
+
     return _stopFuture;
   }
   
@@ -592,13 +627,11 @@ class PoolImpl implements Pool {
     if (_heartbeatTimer != null) _heartbeatTimer.cancel();
   
     // Send error messages to connections in wait queue.
-    _waitQueue.forEach((completer) =>
-      completer.completeError(new pg.PostgresqlException(
-          'Connection pool is stopping.', null,
-          exception: pePoolStopped)));
-    _waitQueue.clear();
-    
-    
+    final ex = new pg.PostgresqlException(
+        'Connection pool is stopping.', null, exception: pePoolStopped);
+    while (_waitQueue.isNotEmpty)
+      _waitQueue.removeAt(0).c.completeError(ex);
+
     // Close connections as they are returned to the pool.
     // If stop timeout is reached then close connections even if still in use.
 
@@ -628,3 +661,22 @@ class PoolImpl implements Pool {
       f(_connections[i], i);
   }
 }
+
+class _Waiting {
+  final Completer<PooledConnectionImpl> c;
+  DateTime at;
+
+  /// - [runOut] whether [freeConnections] is running out.
+  /// Note: we don't set [at], unless [runOut], since [at]
+  /// is required only for running out (see [_countToEstablish]).
+  _Waiting(bool runOut): c = new Completer<PooledConnectionImpl>() {
+    if (runOut) at = new DateTime.now();
+  }
+
+  @override
+  int get hashCode => c.hashCode;
+  @override
+  bool operator==(o) => o is _Waiting && o.c == c;
+}
+
+final _random = new math.Random();

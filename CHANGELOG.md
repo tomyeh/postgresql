@@ -1,3 +1,8 @@
+### Version 0.7.6
+
+* If `freeConnections` is set, we'll wait up to 700ms, if number of connections exceeds [freeConnections].
+It helps to reduce number of connections if there are a lot of short-lived connections.
+
 ### Version 0.7.4
 
 * `Settings.onMaxConnection` introduced to monitor the usage of DB connections.

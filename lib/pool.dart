@@ -120,6 +120,11 @@ abstract class PoolSettings {
   /// Maximum number of connections to keep in pool.
   /// If number of connections exceeds [freeConnections], they will
   /// be removed from the pool as soon as possible.
+  /// 
+  /// Also, we'll wait up to 700ms before establishing
+  /// a new connection, if there are more than [freeConnections].
+  /// It helps to reduce number of connections if there are a lot of
+  /// short-lived connections.
   ///
   /// Ignored if not a positive number. Defaults to 0.
   int get freeConnections;
