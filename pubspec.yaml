@@ -1,9 +1,9 @@
 name: postgresql2
-version: 0.7.6
+version: 0.7.7
 description: >
-  A temporary fork of Greg's PostgreSQL driver (xxgreg/postgresql)
+  A fork of Greg's PostgreSQL driver (xxgreg/postgresql)
   using conserved substitution respecting strings and @@ operators.
-  also optimizing the pool implementation aggressivly.
+  Also optimizing the pool implementation aggressivly.
 homepage: https://github.com/tomyeh/postgresql
 
 environment:
