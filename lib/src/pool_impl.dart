@@ -208,7 +208,7 @@ class PoolImpl implements Pool {
         500*60*1000; //bigger than possible [idleTimeout]
     var hbMilliseconds = math.min(leakMilliseconds,
           math.max(60000, settings.idleTimeout.inMilliseconds ~/ 3));
-    if (settings.freeConnections > 0) //more frequent if set
+    if (settings.limitConnections > 0) //more frequent if set
       hbMilliseconds = math.min(60000, hbMilliseconds);
     _heartbeatDuration = new Duration(milliseconds: hbMilliseconds);
     _heartbeat(); //start heartbeat
@@ -289,8 +289,8 @@ class PoolImpl implements Pool {
   void _checkIdleTimeout(PooledConnectionImpl pconn, int i) {
     if (pconn._state == available
     && (_isExpired(pconn._released ?? pconn._established, settings.idleTimeout)
-        || (settings.freeConnections > 0
-            && _connections.length > settings.freeConnections))) {
+        || (settings.limitConnections > 0
+            && _connections.length > settings.limitConnections))) {
       _destroyConnection(pconn, i);
     }
   }
@@ -384,9 +384,9 @@ class PoolImpl implements Pool {
     // add the current connection request at the end of the
     // wait queue.
     if (pconn == null) {
-      final waiting = new _Waiting(settings.freeConnections > 0
-          && settings.freeConnections <= _waitQueue.length + connections.length);
-          //running out [freeConnections]
+      final waiting = new _Waiting(settings.limitConnections > 0
+          && settings.limitConnections <= _waitQueue.length + connections.length);
+          //running out [limitConnections]
       _waitQueue.add(waiting);
       try {
         _processWaitQueue();
@@ -488,13 +488,12 @@ class PoolImpl implements Pool {
     final maxc = settings.maxConnections - _connections.length;
     var count = math.min(_waitQueue.length, maxc);
 
-    //Wait up to 700ms if running out of [freeConnections], if it > 0
-    if (count > 0 && settings.freeConnections > 0) {
-      count = math.min(count, settings.freeConnections - connections.length);
-      if (count <= 0) { //run out [freeConnections]
-        //Scan if requests wait too long (700ms)
-        final ref = new DateTime.now()
-          .subtract(const Duration(milliseconds: 700)); //wait up to 700ms
+    //Wait up to [limitTimeout] if running out of [limitConnections], if it > 0
+    if (count > 0 && settings.limitConnections > 0) {
+      count = math.min(count, settings.limitConnections - connections.length);
+      if (count <= 0) { //run out [limitConnections]
+        //Scan if requests wait too long ([limitTimeout])
+        final ref = new DateTime.now().subtract(settings.limitTimeout);
         Duration duration;
         count = 0;
         for (final waiting in _waitQueue) {
@@ -505,7 +504,7 @@ class PoolImpl implements Pool {
           if (++count >= maxc) break; //no more than [maxConnections]
         }
 
-        //if running out, start a timer to force it to process within 700ms
+        //if running out, start a timer to force it to process within [limitTimeout]
         if (count == 0 && _tmProcessAgain == null) {
           _tmProcessAgain = new Timer(duration, () {
             _tmProcessAgain = null;
@@ -666,7 +665,7 @@ class _Waiting {
   final Completer<PooledConnectionImpl> c;
   DateTime at;
 
-  /// - [runOut] whether [freeConnections] is running out.
+  /// - [runOut] whether [limitConnections] is running out.
   /// Note: we don't set [at], unless [runOut], since [at]
   /// is required only for running out (see [_countToEstablish]).
   _Waiting(bool runOut): c = new Completer<PooledConnectionImpl>() {

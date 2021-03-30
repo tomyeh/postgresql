@@ -1,3 +1,8 @@
+### Version 0.7.7
+
+* Rename `freeConnections` to `limitConnections`
+* Add `limitTimeout` to control how long to wait when exceeding `limitConnections`
+
 ### Version 0.7.6
 
 * If `freeConnections` is set, we'll wait up to 700ms, if number of connections exceeds [freeConnections].

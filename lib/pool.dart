@@ -13,13 +13,16 @@ abstract class Pool {
    {String poolName,
     int minConnections,
     int maxConnections,
+    @deprecated
     int freeConnections,
+    int limitConnections,
     void Function(int count) onMaxConnection,
     Duration startTimeout,
     Duration stopTimeout,
     Duration establishTimeout,
     Duration connectionTimeout,
     Duration idleTimeout,
+    Duration limitTimeout,
     Duration maxLifetime,
     Duration leakDetectionThreshold,
     bool testConnections,
@@ -33,13 +36,14 @@ abstract class Pool {
               poolName: poolName,
               minConnections: minConnections,
               maxConnections: maxConnections,
-              freeConnections: freeConnections,
+              limitConnections: limitConnections ?? freeConnections,
               onMaxConnection: onMaxConnection,
               startTimeout: startTimeout,
               stopTimeout: stopTimeout,
               establishTimeout: establishTimeout,
               connectionTimeout: connectionTimeout,
               idleTimeout: idleTimeout,
+              limitTimeout: limitTimeout,
               maxLifetime: maxLifetime,
               leakDetectionThreshold: leakDetectionThreshold,
               testConnections: testConnections,
@@ -84,13 +88,14 @@ abstract class PoolSettings {
       String poolName,
       int minConnections,
       int maxConnections,
-      int freeConnections,
+      int limitConnections,
       void Function(int count) onMaxConnection,
       Duration startTimeout,
       Duration stopTimeout,
       Duration establishTimeout,
       Duration connectionTimeout,
       Duration idleTimeout,
+      Duration limitTimeout,
       Duration maxLifetime,
       Duration leakDetectionThreshold,
       bool testConnections,
@@ -117,17 +122,23 @@ abstract class PoolSettings {
   /// this number of database connections. Defaults to 10. 
   int get maxConnections;
 
-  /// Maximum number of connections to keep in pool.
-  /// If number of connections exceeds [freeConnections], they will
-  /// be removed from the pool as soon as possible.
+  /// A soft limit to keep the number of connections below it.
+  /// If number of connections exceeds [limitConnections],
+  /// they'll be removed from the pool as soon as possible
+  /// (about a minute after released).
   /// 
-  /// Also, we'll wait up to 700ms before establishing
-  /// a new connection, if there are more than [freeConnections].
+  /// In additions, we'll slow down the estbalishing of new connections.
+  /// by waiting up to [limitTimeout], if there are more than
+  /// [limitConnections] connections.
+  ///
   /// It helps to reduce number of connections if there are a lot of
   /// short-lived connections.
+  /// 
+  /// It can still run up to [maxConnections] if no connections are
+  /// released before the timeout
   ///
   /// Ignored if not a positive number. Defaults to 0.
-  int get freeConnections;
+  int get limitConnections;
 
   /// Callback when detecting the number of DB connections is larger
   /// then the previous maximal number.
@@ -156,6 +167,13 @@ abstract class PoolSettings {
   /// and there are more than the minimum number of connections in the pool,
   /// then this connection will be closed. Defaults to 10 minutes.  
   Duration get idleTimeout;
+
+  /// If the number of connections is more than [limitConnections],
+  /// the establishing of new connections will be slowed down by
+  /// waiting the duration specified in [limitTimeout]. Default: 700ms.
+  /// 
+  /// > Note: it is ignored if [limitConnections] is zero or negative.
+  Duration get limitTimeout;
 
   /// At the time that a connection is released, if it is older
   /// than this time it will be closed. Defaults to 30 minutes.

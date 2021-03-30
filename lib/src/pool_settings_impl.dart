@@ -14,13 +14,14 @@ class PoolSettingsImpl implements PoolSettings {
       String poolName,
       this.minConnections: 5,
       this.maxConnections: 10,
-      this.freeConnections: 0,
+      this.limitConnections: 0,
       this.onMaxConnection,
       this.startTimeout: const Duration(seconds: 30),
       this.stopTimeout: const Duration(seconds: 30),
       this.establishTimeout: const Duration(seconds: 30),
       this.connectionTimeout: const Duration(seconds: 30),
       this.idleTimeout: const Duration(minutes: 10),
+      this.limitTimeout: const Duration(milliseconds: 700),
       this.maxLifetime: const Duration(minutes: 30),
       this.leakDetectionThreshold: null, // Disabled by default.
       this.testConnections: false,
@@ -36,13 +37,14 @@ class PoolSettingsImpl implements PoolSettings {
         String poolName,
         int minConnections,
         int maxConnections,
-        int freeConnections,
+        int limitConnections,
         void Function(int count) onMaxConnection,
         Duration startTimeout,
         Duration stopTimeout,
         Duration establishTimeout,
         Duration connectionTimeout,
         Duration idleTimeout,
+        Duration limitTimeout,
         Duration maxLifetime,
         Duration leakDetectionThreshold,
         bool testConnections,
@@ -55,13 +57,14 @@ class PoolSettingsImpl implements PoolSettings {
      poolName: poolName,
      minConnections: minConnections ?? _default.minConnections,
      maxConnections: maxConnections ?? _default.maxConnections,
-     freeConnections: freeConnections ?? _default.freeConnections,
+     limitConnections: limitConnections ?? _default.limitConnections,
      onMaxConnection: onMaxConnection,
      startTimeout: startTimeout  ?? _default.startTimeout,
      stopTimeout: stopTimeout  ?? _default.stopTimeout,
      establishTimeout: establishTimeout  ?? _default.establishTimeout,
      connectionTimeout: connectionTimeout  ?? _default.connectionTimeout,
      idleTimeout: idleTimeout  ?? _default.idleTimeout,
+     limitTimeout: limitTimeout  ?? _default.limitTimeout,
      maxLifetime: maxLifetime  ?? _default.maxLifetime,
      leakDetectionThreshold: leakDetectionThreshold  ?? _default.leakDetectionThreshold,
      testConnections: testConnections  ?? _default.testConnections,
@@ -77,13 +80,14 @@ class PoolSettingsImpl implements PoolSettings {
   final String poolName;
   final int minConnections;
   final int maxConnections;
-  final int freeConnections;
+  final int limitConnections;
   final void Function(int count) onMaxConnection;
   final Duration startTimeout;
   final Duration stopTimeout;
   final Duration establishTimeout;
   final Duration connectionTimeout;
   final Duration idleTimeout;
+  final Duration limitTimeout;
   final Duration maxLifetime;
   final Duration leakDetectionThreshold;
   final bool testConnections;
@@ -144,13 +148,14 @@ class PoolSettingsImpl implements PoolSettings {
         poolName: getString('poolName'),
         minConnections: getInt('minConnections'),
         maxConnections: getInt('maxConnections'),
-        freeConnections: getInt('freeConnections'),
+        limitConnections: getInt('limitConnections'),
         //onMaxConnection: get?('onMaxConnection'),
         startTimeout: getDuration('startTimeout'),
         stopTimeout: getDuration('stopTimeout'),
         establishTimeout: getDuration('establishTimeout'),
         connectionTimeout: getDuration('connectionTimeout'),
         idleTimeout: getDuration('idleTimeout'),
+        limitTimeout: getDuration('limitTimeout'),
         maxLifetime: getDuration('maxLifetime'),
         leakDetectionThreshold: getDuration('leakDetectionThreshold'),
         testConnections: getBool('testConnections'),
@@ -167,7 +172,7 @@ class PoolSettingsImpl implements PoolSettings {
     if (poolName != null) m['poolName'] = poolName;
     if (minConnections != null) m['minConnections'] = minConnections;
     if (maxConnections != null) m['maxConnections'] = maxConnections;
-    if (freeConnections != null) m['freeConnections'] = freeConnections;
+    if (limitConnections != null) m['limitConnections'] = limitConnections;
     //if (onMaxConnection != null) m['onMaxConnection'] = onMaxConnection;
     if (startTimeout != null) m['startTimeout'] = fmt(startTimeout);
     if (stopTimeout != null) m['stopTimeout'] = fmt(stopTimeout);
@@ -175,6 +180,7 @@ class PoolSettingsImpl implements PoolSettings {
     if (connectionTimeout != null)
       m['connectionTimeout'] = fmt(connectionTimeout);
     if (idleTimeout != null) m['idleTimeout'] = fmt(idleTimeout);
+    if (limitTimeout != null) m['limitTimeout'] = fmt(limitTimeout);
     if (maxLifetime != null) m['maxLifetime'] = fmt(maxLifetime);
     if (leakDetectionThreshold != null)
       m['leakDetectionThreshold'] = fmt(leakDetectionThreshold);
