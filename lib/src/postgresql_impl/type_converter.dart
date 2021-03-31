@@ -63,11 +63,10 @@ class DefaultTypeConverter implements TypeConverter {
 
       case 'real': case 'double':
       case 'num': case 'number':
-        if (value is num)
+      case 'numeric': case 'decimal': //Work only for smaller precision
+        if (value is num || value is BigInt)
           return encodeNumber(value);
         break;
-
-    // TODO numeric, decimal
 
       case 'boolean': case 'bool':
         if (value is bool)
@@ -212,6 +211,7 @@ class DefaultTypeConverter implements TypeConverter {
 
       case _FLOAT4: // real
       case _FLOAT8: // double precision
+      case _NUMERIC: //Work only for smaller precision
         return double.parse(value);
   
       case _TIMESTAMP:
@@ -222,13 +222,6 @@ class DefaultTypeConverter implements TypeConverter {
       case _JSON:
       case _JSONB:
         return jsonDecode(value);
-
-      case _NUMERIC:
-        try {
-          return BigInt.parse(value);
-        } catch (_) {
-        }
-        return value;
 
       //TODO binary bytea
   

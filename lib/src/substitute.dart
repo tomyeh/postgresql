@@ -199,13 +199,7 @@ class _CharReader {
   int _i = 0;
 
   bool hasMore() => _i < _codes.length;
-
-  int read() {
-    if (hasMore())
-      return _codes[_i++];
-    throw new RangeError("$_source: ${_codes.length}");
-  }
-
+  int read() => hasMore() ? _codes[_i++]: 0;
   int peek() => hasMore() ? _codes[_i]: 0;
 
   String readWhile(bool test(int charCode)) {
