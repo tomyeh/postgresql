@@ -81,7 +81,7 @@ Future testStartTimeout() async {
     fail('Pool started, but should have timed out.');
   } catch (ex) {
     expect(ex, const TypeMatcher<PostgresqlException>());
-    expect(ex.message, contains('timed out'));
+    expect((ex as PostgresqlException).message, contains('timed out'));
     expect(pool.state, equals(startFailed));
   }
 }

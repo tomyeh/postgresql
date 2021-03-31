@@ -1,17 +1,11 @@
-import 'dart:io';
 import 'package:test/test.dart';
 import 'package:postgresql2/postgresql.dart';
 import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart';
-import 'package:yaml/yaml.dart';
 
-Settings loadSettings(){
-  var map = loadYaml(new File('test/test_config.yaml').readAsStringSync());
-  return new Settings.fromMap(map);
-}
 
 main() {
 
-  DefaultTypeConverter tc = new TypeConverter();
+  final tc = new TypeConverter() as DefaultTypeConverter;
 
   test('String escaping', () {
     expect(tc.encodeValue("bob", "json"), equals(' E\'"bob"\' '));

@@ -1,19 +1,12 @@
-import 'dart:io';
 import 'package:test/test.dart';
 import 'package:postgresql2/postgresql.dart';
 import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart';
 import 'package:postgresql2/src/substitute.dart';
-import 'package:yaml/yaml.dart';
 
-Settings loadSettings(){
-  var map = loadYaml(new File('test/test_config.yaml').readAsStringSync());
-  return new Settings.fromMap(map);
-}
+void main() {
 
-main() {
+  final tc = new TypeConverter() as DefaultTypeConverter;
 
-  DefaultTypeConverter tc = new TypeConverter();
-  
   group('Substitute by id', () {
     test('Substitute A', () {
       var result = substitute("""'@id\\'@id'@id"@id" """,

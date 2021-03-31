@@ -31,17 +31,17 @@ abstract class ProtocolMessage {
 
 class Startup implements ProtocolMessage {
   
-  Startup(this.user, this.database, [this.parameters = const {}]) {
-    if (user == null || database == null) throw new ArgumentError();
-  }
+  Startup(this.user, this.database, [this.parameters = const {}]);
   
   // Startup and ssl request are the only messages without a messageCode.
-  final int messageCode = 0; 
+  @override
+  final int messageCode = 0;
   final int protocolVersion = 196608;
   final String user;
   final String database;
   final Map<String,String> parameters;
-  
+
+  @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode)
       ..addInt32(protocolVersion)
@@ -59,7 +59,8 @@ class Startup implements ProtocolMessage {
     
     return mb.build();
   }
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -71,8 +72,12 @@ class Startup implements ProtocolMessage {
 
 class SslRequest implements ProtocolMessage {
   // Startup and ssl request are the only messages without a messageCode.
+  @override
   final int messageCode = 0;
+  @override
   List<int> encode() => <int> [0, 0, 0, 8, 4, 210, 22, 47];
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -80,8 +85,12 @@ class SslRequest implements ProtocolMessage {
 }
 
 class Terminate implements ProtocolMessage {
+  @override
   final int messageCode = 'X'.codeUnitAt(0);
+  @override
   List<int> encode() => new _MessageBuilder(messageCode).build();
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -104,20 +113,23 @@ class AuthenticationRequest implements ProtocolMessage {
   
   AuthenticationRequest.md5(this.salt)
       : authType = authTypeMd5 {
-    if (salt == null || salt.length != 4) throw new ArgumentError();
+    if (salt?.length != 4) throw new ArgumentError();
   }
-  
+
+  @override
   final int messageCode = 'R'.codeUnitAt(0);
   final int authType;
-  final List<int> salt;
-  
+  final List<int>? salt;
+
+  @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode);
     mb.addInt32(authType);
-    if (authType == authTypeMd5) mb.addBytes(salt);
+    if (authType == authTypeMd5) mb.addBytes(salt!);
     return mb.build();
   }
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -128,21 +140,22 @@ class AuthenticationRequest implements ProtocolMessage {
 
 class BackendKeyData implements ProtocolMessage {
   
-  BackendKeyData(this.backendPid, this.secretKey) {
-    if (backendPid == null || secretKey == null) throw new ArgumentError();
-  }
-  
+  BackendKeyData(this.backendPid, this.secretKey);
+
+  @override
   final int messageCode = 'K'.codeUnitAt(0);
   final int backendPid;
   final int secretKey;
-  
+
+  @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode)
       ..addInt32(backendPid)
       ..addInt32(secretKey);
     return mb.build();
   }
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -154,18 +167,21 @@ class BackendKeyData implements ProtocolMessage {
 class ParameterStatus implements ProtocolMessage {
   
   ParameterStatus(this.name, this.value);
-  
+
+  @override
   final int messageCode = 'S'.codeUnitAt(0);
   final String name;
   final String value;
-  
+
+  @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode)
       ..addUtf8(name)
       ..addUtf8(value);
     return mb.build();
   }
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -177,13 +193,16 @@ class ParameterStatus implements ProtocolMessage {
 class Query implements ProtocolMessage {
   
   Query(this.query);
-  
+
+  @override
   final int messageCode = 'Q'.codeUnitAt(0);
   final String query;
-  
+
+  @override
   List<int> encode()
     => (new _MessageBuilder(messageCode)..addUtf8(query)).build(); //FIXME why do I need extra parens here. Analyzer bug?
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -201,7 +220,8 @@ class Field {
   final int typeModifier = 0;
   final int formatCode = 0;
   bool get isBinary => formatCode == 1;
-  
+
+  @override
   String toString() => json.encode({
     'name': name,
     'fieldId': fieldId,
@@ -215,13 +235,13 @@ class Field {
 
 class RowDescription implements ProtocolMessage {
   
-  RowDescription(this.fields) {
-    if (fields == null) throw new ArgumentError();
-  }
-  
+  RowDescription(this.fields);
+
+  @override
   final int messageCode = 'T'.codeUnitAt(0);
   final List<Field> fields;
-  
+
+  @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode) 
       ..addInt16(fields.length);
@@ -238,7 +258,8 @@ class RowDescription implements ProtocolMessage {
     
     return mb.build();
   }
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -250,16 +271,16 @@ class RowDescription implements ProtocolMessage {
 
 class DataRow implements ProtocolMessage {
   
-  DataRow.fromBytes(this.values) {
-    if (values == null) throw new ArgumentError();
-  }
+  DataRow.fromBytes(this.values);
 
   DataRow.fromStrings(List<String> strings)
     : values = strings.map(utf8.encode).toList(growable: false);
-  
+
+  @override
   final int messageCode = 'D'.codeUnitAt(0);
   final List<List<int>> values;
-  
+
+  @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode)
       ..addInt16(values.length);
@@ -271,7 +292,8 @@ class DataRow implements ProtocolMessage {
     
     return mb.build();
   }
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -291,12 +313,15 @@ class CommandComplete implements ProtocolMessage {
   CommandComplete.move(int rows) : this('MOVE $rows');
   CommandComplete.fetch(int rows) : this('FETCH $rows');
   CommandComplete.copy(int rows) : this('COPY $rows');
-  
+
+  @override
   final int messageCode = 'C'.codeUnitAt(0);
   final String tag;
-  
+
+  @override
   List<int> encode() => (new _MessageBuilder(messageCode)..addUtf8(tag)).build(); //FIXME remove extra parens.
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -309,7 +334,8 @@ enum TransactionStatus { none, transaction, failed }
 class ReadyForQuery implements ProtocolMessage {
   
   ReadyForQuery(this.transactionStatus);
-  
+
+  @override
   final int messageCode = 'Z'.codeUnitAt(0);
   final TransactionStatus transactionStatus;
   
@@ -318,13 +344,15 @@ class ReadyForQuery implements ProtocolMessage {
     TransactionStatus.transaction: 'T'.codeUnitAt(0),
     TransactionStatus.failed: 'E'.codeUnitAt(0)
   };
-  
+
+  @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode)
       ..addByte(_txStatus[transactionStatus]);
     return mb.build();
   }
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -336,37 +364,38 @@ abstract class BaseResponse implements ProtocolMessage {
   
   BaseResponse(Map<String,String> fields)
       : fields = new UnmodifiableMapView<String,String>(fields) {
-    if (fields == null) throw new ArgumentError();
     assert(fields.keys.every((k) => k.length == 1));
   }
   
-  String get severity => fields['S'];
-  String get code => fields['C'];
-  String get message => fields['M'];
-  String get detail => fields['D'];
-  String get hint => fields['H'];
-  String get position => fields['P'];
-  String get internalPosition => fields['p'];
-  String get internalQuery => fields['q'];
-  String get where => fields['W'];
-  String get schema => fields['s'];
-  String get table => fields['t'];
-  String get column => fields['c'];
-  String get dataType => fields['d'];
-  String get constraint => fields['n'];
-  String get file => fields['F'];
-  String get line => fields['L'];
-  String get routine => fields['R'];
+  String? get severity => fields['S'];
+  String? get code => fields['C'];
+  String? get message => fields['M'];
+  String? get detail => fields['D'];
+  String? get hint => fields['H'];
+  String? get position => fields['P'];
+  String? get internalPosition => fields['p'];
+  String? get internalQuery => fields['q'];
+  String? get where => fields['W'];
+  String? get schema => fields['s'];
+  String? get table => fields['t'];
+  String? get column => fields['c'];
+  String? get dataType => fields['d'];
+  String? get constraint => fields['n'];
+  String? get file => fields['F'];
+  String? get line => fields['L'];
+  String? get routine => fields['R'];
   
   final Map<String, String> fields;
-  
+
+  @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode);
     fields.forEach((k, v) => mb..addUtf8(k)..addUtf8(v));
     mb.addByte(0); // Terminator
     return mb.build();
   }
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode),
@@ -376,18 +405,24 @@ abstract class BaseResponse implements ProtocolMessage {
 
 class ErrorResponse extends BaseResponse implements ProtocolMessage {
   ErrorResponse(Map<String,String> fields) : super(fields);
+  @override
   final int messageCode = 'E'.codeUnitAt(0);
 }
 
 class NoticeResponse extends BaseResponse implements ProtocolMessage {
   NoticeResponse(Map<String,String> fields) : super(fields);
+  @override
   final int messageCode = 'N'.codeUnitAt(0);
 }
 
-class EmptyQueryResponse implements ProtocolMessage {  
+class EmptyQueryResponse implements ProtocolMessage {
+  @override
   final int messageCode = 'I'.codeUnitAt(0);
+
+  @override
   List<int> encode() => new _MessageBuilder(messageCode).build();
-  
+
+  @override
   String toString() => json.encode({
     'msg': runtimeType.toString(),
     'code': new String.fromCharCode(messageCode)

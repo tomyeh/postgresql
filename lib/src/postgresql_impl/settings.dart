@@ -24,14 +24,13 @@ class SettingsImpl implements Settings {
     : _requireSsl = requireSsl;
   
   static _error(msg) => new PostgresqlException('Settings: $msg', null);
-  
+
   factory SettingsImpl.fromUri(String uri) {
-    
     var u = Uri.parse(uri);
     if (u.scheme != 'postgres' && u.scheme != 'postgresql')
       throw _error('Invalid uri: scheme must be `postgres` or `postgresql`.');
 
-    if (u.userInfo == null || u.userInfo == '')
+    if (u.userInfo == '')
       throw _error('Invalid uri: username must be specified.');
 
     var userInfo;
@@ -39,14 +38,12 @@ class SettingsImpl implements Settings {
       userInfo = u.userInfo.split(':');
     else userInfo = [u.userInfo, ''];
 
-    if (u.path == null || !u.path.startsWith('/') || !(u.path.length > 1))
+    if (!u.path.startsWith('/') || !(u.path.length > 1))
       throw _error('Invalid uri: `database name must be specified`.');
 
-    bool requireSsl = false;
-    if (u.query != null)
-      requireSsl = u.query.contains('sslmode=require');
+    final requireSsl = u.query.contains('sslmode=require');
 
-    return new Settings(
+    return new SettingsImpl(
         Uri.decodeComponent(u.host),
         u.port == 0 ? Settings.defaultPort : u.port,
         Uri.decodeComponent(userInfo[0]),
@@ -55,64 +52,29 @@ class SettingsImpl implements Settings {
         requireSsl: requireSsl);
   }
 
-  SettingsImpl.fromMap(Map config){
-    
-    final String host = config.containsKey(HOST) ?
-        config[HOST] : DEFAULT_HOST;
-    final int port = config.containsKey(PORT) ?
-        config[PORT] is int ? config[PORT]
-          : throw _error('Specified port is not a valid number')
-        : Settings.defaultPort;
-    if (!config.containsKey(USER))
-      throw _error(USER);
-    if (!config.containsKey(PASSWORD))
-      throw _error(PASSWORD);
-    if (!config.containsKey(DATABASE))
-      throw _error(DATABASE);
-    
-    this._host = host;
-    this._port = port;
-    this._user = config[USER];
-
-    var pwd = config[PASSWORD];
-    this._password = pwd == null || pwd == '' ? '' : pwd;
-    this._database = config[DATABASE];
-
-    this._requireSsl = config.containsKey('sslmode') 
-        && config['sslmode'] == 'require';
-  }
-  
+  @override
   String get host => _host;
+  @override
   int get port => _port;
+  @override
   String get user => _user;
+  @override
   String get password => _password;
+  @override
   String get database => _database;
+  @override
   bool get requireSsl => _requireSsl;
 
+  @override
   String toUri() => new Uri(
         scheme: 'postgres',
-        userInfo: _password == null || _password == ''
-            ? '$_user'
-            : '$_user:$_password',
+        userInfo: _password == '' ? '$_user': '$_user:$_password',
         host: _host,
         port: _port,
         path: _database,
         query: requireSsl ? '?sslmode=require' : null).toString();
-  
+
+  @override
   String toString()
     => "Settings {host: $_host, port: $_port, user: $_user, database: $_database}";
-
-  Map toMap() {
-    var map = new Map<String, dynamic>();
-    map[HOST] = host;
-    map[PORT] = port;
-    map[USER] = user;
-    map[PASSWORD] = password;
-    map[DATABASE] = database;
-    if (requireSsl)
-      map['sslmode'] = 'require';
-    return map;
-  }
-  
-  Map toJson() => toMap();
 }

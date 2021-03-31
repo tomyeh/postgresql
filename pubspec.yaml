@@ -1,5 +1,5 @@
 name: postgresql2
-version: 0.7.7
+version: 1.0.0
 description: >
   A fork of Greg's PostgreSQL driver (xxgreg/postgresql)
   using conserved substitution respecting strings and @@ operators.
@@ -7,7 +7,7 @@ description: >
 homepage: https://github.com/tomyeh/postgresql
 
 environment:
-  sdk: '>=2.5.0 <3.0.0'
+  sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
   crypto: ">=2.0.0"

@@ -26,7 +26,7 @@ main() {
     }
 
     // Slice up into lots of little lists and add them to the buffer.
-    var b = msg.buffer;
+    Iterable<int> b = msg.buffer;
     int i = 0;
     while (b.isNotEmpty) {
       i += 7;
