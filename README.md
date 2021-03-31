@@ -16,7 +16,7 @@
 
 ## Basic usage
 
-* [API Reference](http://www.dartdocs.org/documentation/postgresql2/0.7.7)
+* [API Reference](http://www.dartdocs.org/documentation/postgresql2/1.0.0-beta)
 
 ### Obtaining a connection
 

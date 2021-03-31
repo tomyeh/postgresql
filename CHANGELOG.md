@@ -1,3 +1,12 @@
+### Version 1.0.0-beta
+
+* Migrate to null safety
+* Numeric and Decimal types are consider as `double`, instead of `BigInt`.
+    * It means the precision is bounded by `double`.
+* The `getConnectionName()` and `getDebugName()` arguments are simplifed as `String? connectionName` and `String? debugName`.
+* `Settings.fromMap` and `Settings.toMap` are removed.
+* The `mockSocketConnect` argument is removed.
+
 ### Version 0.7.7
 
 * Rename `freeConnections` to `limitConnections`

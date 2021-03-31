@@ -2,6 +2,7 @@ library postgresql.substitute;
 
 import 'dart:collection';
 import 'package:charcode/ascii.dart';
+import 'package:rikulo_commons/util.dart';
 
 const int _TOKEN_TEXT = 1;
 const int _TOKEN_IDENT = 3;
@@ -14,18 +15,6 @@ class _Token {
 
   @override
   String toString() => '${['?', 'Text', 'At', 'Ident'][type]} "$value" "$typeName"';
-}
-
-class _Pair<F, S> {
-  final F? first;
-  final S? second;
-
-  const _Pair([this.first, this.second]);
-
-  @override
-  int get hashCode => first.hashCode ^ second.hashCode;
-  @override
-  bool operator==(o) => o is _Pair && first == o.first && second == o.second;
 }
 
 typedef String _ValueEncoder(String identifier, String? type);
@@ -65,7 +54,7 @@ String substitute(String source, values, String encodeValue(value, String? type)
     if (t.type == _TOKEN_IDENT) {
       final id = t.value,
         typeName = t.typeName,
-        key = new _Pair(id, typeName);
+        key = new Pair(id, typeName);
       buf.write(cache[key] ?? (cache[key] = valueEncoder(id, typeName)));
     } else {
       buf.write(t.value);

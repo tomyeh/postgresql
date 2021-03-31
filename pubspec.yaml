@@ -1,5 +1,5 @@
 name: postgresql2
-version: 1.0.0
+version: 1.0.0-beta
 description: >
   A fork of Greg's PostgreSQL driver (xxgreg/postgresql)
   using conserved substitution respecting strings and @@ operators.
@@ -13,6 +13,7 @@ dependencies:
   crypto: ">=2.0.0"
   convert: ">=1.0.0"
   charcode: ">=1.0.0"
+  rikulo_commons: ">=5.0.1"
 
 dev_dependencies:
   test: any
