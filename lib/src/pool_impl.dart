@@ -465,20 +465,20 @@ class PoolImpl implements Pool {
       ops.add(_establishConnectionSafely());
 
     final results = await Future.wait(ops);
-    if (results == null) return;
 
     //Handle the error(s)
     //Purpose: make the caller of [connect] to end as soon as possible.
     //Otherwise, it will wait until timeout
-    _processWaitQueue(); //dispatch succeeded conns, if any
 
     for (final r in results)
       if (r is SocketException) { //unable to connect DB server
+        _processWaitQueue(); //dispatch succeeded conns, if any
+
         final ex = new pg.PostgresqlException(
             'Failed to establish connection', null, exception: peConnectionFailed);
         while (_waitQueue.isNotEmpty)
           _waitQueue.removeAt(0).c.completeError(ex);
-        return; //done
+        break; //done
       }
   }
   bool _establishing = false;

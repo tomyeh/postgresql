@@ -49,9 +49,7 @@ class DefaultTypeConverter implements TypeConverter {
 
     switch (type) {
       case 'text': case 'string':
-        if (value is String)
-          return encodeString(value);
-        break;
+        return encodeString(value.toString());
 
       case 'integer': case 'smallint':
       case 'bigint': case 'serial':
