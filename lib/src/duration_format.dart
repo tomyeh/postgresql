@@ -1,6 +1,6 @@
 library postgresql.duration_format;
 
-int parseInt(String s, {int onError(String s)})
+int parseInt(String s, {required int onError(String s)})
 => int.tryParse(s) ?? onError(s);
 
 class DurationFormat {
@@ -14,9 +14,7 @@ class DurationFormat {
   final bool _approx;
   final int _threshold;
     
-  Duration parse(String s, {onError(String s)}) {
-    if (s == null) throw new ArgumentError.notNull('string');
-    
+  Duration parse(String s, {onError(String s)?}) {
     ex() => new FormatException('Cannot parse string as duration: "$s".');
     
     parsePrefix(s, [int suffixLen = 1])
@@ -34,9 +32,6 @@ class DurationFormat {
   }
 
   String format(Duration d) {
-    
-    if (d == null) throw new ArgumentError.notNull('duration');
-    
     if (_approx) d = _approximate(d);
     
     if (d.inMicroseconds == 0)

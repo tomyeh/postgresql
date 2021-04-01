@@ -12,9 +12,11 @@
 
 * `Pool.connect()` throws an exception immediately if failed to connect to database.
 
+* More options to control the pool, such as `limitTimeout` and `limitConnections`
+
 ## Basic usage
 
-* [API Reference](http://www.dartdocs.org/documentation/postgresql2/0.7.6)
+* [API Reference](http://www.dartdocs.org/documentation/postgresql2/1.0.0-beta)
 
 ### Obtaining a connection
 

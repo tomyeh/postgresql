@@ -8,7 +8,7 @@ import 'package:postgresql2/pool.dart';
 
 _log(msg) {}
 
-int secsSince(DateTime time) => time == null
+int? secsSince(DateTime? time) => time == null
   ? null
   : new DateTime.now().difference(time).inSeconds;
 
@@ -58,7 +58,7 @@ main() {
   int slowQueriesCompleted = 0;
 
   
-  var loggerFunc = (Timer t) {
+  var loggerFunc = (Timer? t) {
     print('queriesSent: $queriesSent  queriesCompleted: $queriesCompleted  slowSent: $slowQueriesSent  slowCompleted: $slowQueriesCompleted  connect timeouts: $connectTimeout  queryError: $queryError   connectError: $connectError ');
     debug(pool);
   };

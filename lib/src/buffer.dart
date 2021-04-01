@@ -14,12 +14,12 @@ class Buffer {
   Function _createException;
   
   int _position = 0;
-  final Queue<List<int>> _queue = new Queue<List<int>>();
+  final _queue = new Queue<List<int>>();
 
   int _bytesRead = 0;
   int get bytesRead => _bytesRead;
 
-  int get bytesAvailable => _queue.fold(0, (len, buffer) => len + buffer.length) - _position;
+  int get bytesAvailable => _queue.fold<int>(0, (len, buffer) => len + buffer.length) - _position;
 
   int readByte() {
     if (_queue.isEmpty)
@@ -67,10 +67,9 @@ class Buffer {
   }
 
   List<int> readBytes(int bytes) {
-    var list = new List<int>(bytes);
-    for (int i = 0; i < bytes; i++) {
-      list[i] = readByte();
-    }
+    final list = <int>[];
+    while (--bytes >= 0)
+      list.add(readByte());
     return list;
   }
 
@@ -86,7 +85,7 @@ class Buffer {
     //TODO Optimise this. Though note it isn't really a hot function. The most
     // performance critical place that this is used is in reading column headers
     // which are short, and only once per query.
-    var bytes = new List<int>();
+    final bytes = <int>[];
     int c, i = 0;
     while ((c = readByte()) != 0) {
       if (i > maxSize) throw _createException('Max size exceeded while reading string: $maxSize.');
@@ -96,8 +95,8 @@ class Buffer {
   }
 
   void append(List<int> data) {
-    if (data == null || data.isEmpty)
-      throw new Exception("Attempted to append null or empty list.");
+    if (data.isEmpty)
+      throw new Exception("Attempted to append empty list.");
 
     _queue.addLast(data);
   }
@@ -105,7 +104,7 @@ class Buffer {
 
 //TODO switch to using the new ByteBuilder class.
 class MessageBuffer {
-  List<int> _buffer = new List<int>();
+  final _buffer = <int>[];
   List<int> get buffer => _buffer;
 
   void addByte(int byte) {

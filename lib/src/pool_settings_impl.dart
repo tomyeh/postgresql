@@ -1,67 +1,68 @@
 library postgresql.pool.pool_settings_impl;
 
-import 'dart:convert';
 import 'package:postgresql2/pool.dart';
 import 'package:postgresql2/postgresql.dart' as pg;
-import 'package:postgresql2/src/duration_format.dart';
 
-final PoolSettingsImpl _default = new PoolSettingsImpl();
+final PoolSettingsImpl _default = new PoolSettingsImpl(databaseUri: '');
 
 class PoolSettingsImpl implements PoolSettings {
   
   PoolSettingsImpl({
-      this.databaseUri,
-      String poolName,
+      required this.databaseUri,
+      String? poolName,
       this.minConnections: 5,
       this.maxConnections: 10,
-      this.freeConnections: 0,
-      this.onMaxConnection,
+      this.limitConnections: 0,
+      void Function(int count)? this.onMaxConnection,
       this.startTimeout: const Duration(seconds: 30),
       this.stopTimeout: const Duration(seconds: 30),
       this.establishTimeout: const Duration(seconds: 30),
       this.connectionTimeout: const Duration(seconds: 30),
       this.idleTimeout: const Duration(minutes: 10),
+      this.limitTimeout: const Duration(milliseconds: 700),
       this.maxLifetime: const Duration(minutes: 30),
       this.leakDetectionThreshold: null, // Disabled by default.
       this.testConnections: false,
       this.restartIfAllConnectionsLeaked: false,
       this.applicationName,
       this.timeZone})
-        : poolName = poolName != null ? poolName : 'pgpool${_sequence++}';
+        : this.poolName = poolName != null ? poolName : 'pgpool${_sequence++}';
 
 
  // Ugly work around for passing defaults from Pool constructor.
  factory PoolSettingsImpl.withDefaults({
-        String databaseUri,
-        String poolName,
-        int minConnections,
-        int maxConnections,
-        int freeConnections,
-        void Function(int count) onMaxConnection,
-        Duration startTimeout,
-        Duration stopTimeout,
-        Duration establishTimeout,
-        Duration connectionTimeout,
-        Duration idleTimeout,
-        Duration maxLifetime,
-        Duration leakDetectionThreshold,
-        bool testConnections,
-        bool restartIfAllConnectionsLeaked,
-        String applicationName,
-        String timeZone}) {
+        required String databaseUri,
+        String? poolName,
+        int? minConnections,
+        int? maxConnections,
+        int? limitConnections,
+        void Function(int count)? onMaxConnection,
+        Duration? startTimeout,
+        Duration? stopTimeout,
+        Duration? establishTimeout,
+        Duration? connectionTimeout,
+        Duration? idleTimeout,
+        Duration? limitTimeout,
+        Duration? maxLifetime,
+        Duration? leakDetectionThreshold,
+        bool? testConnections,
+        bool? restartIfAllConnectionsLeaked,
+        String? applicationName,
+        String? timeZone}) {
   
    return new PoolSettingsImpl(
      databaseUri: databaseUri,
      poolName: poolName,
      minConnections: minConnections ?? _default.minConnections,
      maxConnections: maxConnections ?? _default.maxConnections,
-     freeConnections: freeConnections ?? _default.freeConnections,
+     limitConnections: limitConnections ?? _default.limitConnections,
      onMaxConnection: onMaxConnection,
      startTimeout: startTimeout  ?? _default.startTimeout,
      stopTimeout: stopTimeout  ?? _default.stopTimeout,
      establishTimeout: establishTimeout  ?? _default.establishTimeout,
      connectionTimeout: connectionTimeout  ?? _default.connectionTimeout,
      idleTimeout: idleTimeout  ?? _default.idleTimeout,
+     limitTimeout: limitTimeout  ?? _default.limitTimeout,
      maxLifetime: maxLifetime  ?? _default.maxLifetime,
      leakDetectionThreshold: leakDetectionThreshold  ?? _default.leakDetectionThreshold,
      testConnections: testConnections  ?? _default.testConnections,
@@ -73,135 +74,44 @@ class PoolSettingsImpl implements PoolSettings {
   // Ids will be unique for this isolate.
   static int _sequence = 0;
 
+  @override
   final String databaseUri;
+  @override
   final String poolName;
+  @override
   final int minConnections;
+  @override
   final int maxConnections;
-  final int freeConnections;
-  final void Function(int count) onMaxConnection;
+  @override
+  final int limitConnections;
+  @override
+  final void Function(int count)? onMaxConnection;
+  @override
   final Duration startTimeout;
+  @override
   final Duration stopTimeout;
+  @override
   final Duration establishTimeout;
+  @override
   final Duration connectionTimeout;
+  @override
   final Duration idleTimeout;
+  @override
+  final Duration limitTimeout;
+  @override
   final Duration maxLifetime;
-  final Duration leakDetectionThreshold;
+  @override
+  final Duration? leakDetectionThreshold;
+  @override
   final bool testConnections;
+  @override
   final bool restartIfAllConnectionsLeaked;
-  final String applicationName;
-  final String timeZone;
-  
-  static final DurationFormat _durationFmt = new DurationFormat();
-  
-  factory PoolSettingsImpl.fromMap(Map map) {
-    
-    var uri = map['databaseUri'];
-    
-    if (uri == null) {
-      try {
-        uri = new pg.Settings.fromMap(map).toUri();
-      } on pg.PostgresqlException {
-      }
-    }
-    
-    fail(String msg) => throw new pg.PostgresqlException(
-        'Pool setting $msg', null);
-    
-    bool getBool(String field) {
-      var value = map[field];
-      if (value == null) return null;
-      if (value is! bool)
-        fail('$field requires boolean value was: ${value.runtimeType}.'); 
-      return value;
-    }
+  @override
+  final String? applicationName;
+  @override
+  final String? timeZone;
 
-    int getInt(String field) {
-      var value = map[field];
-      if (value == null) return null;
-      if (value is! int)
-        fail('$field requires int value was: ${value.runtimeType}.'); 
-      return value;
-    }
-
-    String getString(String field) {
-      var value = map[field];
-      if (value == null) return null;
-      if (value is! String)
-        fail('$field requires string value was: ${value.runtimeType}.'); 
-      return value;
-    }
-    
-    Duration getDuration(String field) {
-      var value = map[field];
-      if (value == null) return null;
-      fail2([String _]) => fail('$field is not a duration string: "$value". Use this format: "120s".');
-      if (value is! String) fail2(); 
-      return _durationFmt.parse(value, onError: fail2);
-    }
-    
-    var settings = new PoolSettingsImpl.withDefaults(
-        databaseUri: uri,
-        poolName: getString('poolName'),
-        minConnections: getInt('minConnections'),
-        maxConnections: getInt('maxConnections'),
-        freeConnections: getInt('freeConnections'),
-        //onMaxConnection: get?('onMaxConnection'),
-        startTimeout: getDuration('startTimeout'),
-        stopTimeout: getDuration('stopTimeout'),
-        establishTimeout: getDuration('establishTimeout'),
-        connectionTimeout: getDuration('connectionTimeout'),
-        idleTimeout: getDuration('idleTimeout'),
-        maxLifetime: getDuration('maxLifetime'),
-        leakDetectionThreshold: getDuration('leakDetectionThreshold'),
-        testConnections: getBool('testConnections'),
-        restartIfAllConnectionsLeaked: getBool('restartIfAllConnectionsLeaked'),
-        applicationName: getString('applicationName'),
-        timeZone: getString('timeZone'));
-    
-    return settings;
-  }
-  
-  Map toMap() {
-    String fmt(Duration d) => d == null ? null : _durationFmt.format(d);    
-    Map m = {'databaseUri': databaseUri};
-    if (poolName != null) m['poolName'] = poolName;
-    if (minConnections != null) m['minConnections'] = minConnections;
-    if (maxConnections != null) m['maxConnections'] = maxConnections;
-    if (freeConnections != null) m['freeConnections'] = freeConnections;
-    //if (onMaxConnection != null) m['onMaxConnection'] = onMaxConnection;
-    if (startTimeout != null) m['startTimeout'] = fmt(startTimeout);
-    if (stopTimeout != null) m['stopTimeout'] = fmt(stopTimeout);
-    if (establishTimeout != null) m['establishTimeout'] = fmt(establishTimeout);
-    if (connectionTimeout != null)
-      m['connectionTimeout'] = fmt(connectionTimeout);
-    if (idleTimeout != null) m['idleTimeout'] = fmt(idleTimeout);
-    if (maxLifetime != null) m['maxLifetime'] = fmt(maxLifetime);
-    if (leakDetectionThreshold != null)
-      m['leakDetectionThreshold'] = fmt(leakDetectionThreshold);
-    if (testConnections != null) m['testConnections'] = testConnections;
-    if (restartIfAllConnectionsLeaked != null)
-      m['restartIfAllConnectionsLeaked'] = restartIfAllConnectionsLeaked;
-    if (applicationName != null) m['applicationName'] = applicationName;
-    if (timeZone != null) m['timeZone'] = timeZone;
-    
-    return m;
-  }
-  
-  Map toJson() => toMap();
-
-  toString() {
-
-    // Stip out password - better not to accidentally log it.
-    var s = new pg.Settings.fromUri(databaseUri);
-    var m = s.toMap();
-    m['password'] = 'xxxx';
-    var uri = new pg.Settings.fromMap(m).toUri();
-    
-    var map = toMap();
-    map['databaseUri'] = uri;
-    var settings = new PoolSettings.fromMap(map);
-    var data = json.encode(settings);
-    
-    return 'PoolSettings $data';
-  }
+  @override
+  String toString()
+  => 'PoolSettings ${new pg.Settings.fromUri(databaseUri)}';
 }

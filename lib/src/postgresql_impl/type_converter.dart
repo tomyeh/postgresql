@@ -10,48 +10,49 @@ const escapePattern = r"'\r\n\\\t\b\f\u0000"; //detect unsupported null
 final _escapeRegExp = new RegExp("[$escapePattern]");
 
 class RawTypeConverter extends DefaultTypeConverter {
-  String encode(value, String type, {getConnectionName()})
+  @override
+  String encode(value, String? type, {String? connectionName})
   => encodeValue(value, type);
-   
-  decode(String value, int pgType, {getConnectionName()}) => value;
+
+  @override
+  decode(String value, int pgType, {String? connectionName}) => value;
 }
 
 /// Encodes the given string ([s]) into the format: ` E'xxx'`
 /// 
 /// > Note: the null character (`\u0000`) will be removed, since
 /// > PostgreSql won't accept it.
-String encodeString(String s) {
+String encodeString(String? s) {
   if (s == null) return ' null ';
 
   var escaped = s.replaceAllMapped(_escapeRegExp, _escape);
   return " E'$escaped' ";
 }
-String _escape(Match m) => escapes[m[0]];
+String _escape(Match m) => escapes[m[0]]!;
 
 class DefaultTypeConverter implements TypeConverter {
-    
-  String encode(value, String type, {getConnectionName()}) 
-    => encodeValue(value, type, getConnectionName: getConnectionName);
-   
-  decode(String value, int pgType, {getConnectionName()})
-  => decodeValue(value, pgType, getConnectionName: getConnectionName);
 
-  PostgresqlException _error(String msg, getConnectionName()) {
-    var name = getConnectionName == null ? null : getConnectionName();
-    return new PostgresqlException(msg, name);
+  @override
+  String encode(value, String? type, {String? connectionName})
+    => encodeValue(value, type, connectionName: connectionName);
+
+  @override
+  decode(String value, int pgType, {String? connectionName})
+  => decodeValue(value, pgType, connectionName: connectionName);
+
+  PostgresqlException _error(String msg, String? connectionName) {
+    return new PostgresqlException(msg, connectionName);
   }
   
-  String encodeValue(value, String type, {getConnectionName()}) {
+  String encodeValue(value, String? type, {String? connectionName}) {
     if (type == null)
-      return encodeValueDefault(value, getConnectionName: getConnectionName);
+      return encodeValueDefault(value, connectionName: connectionName);
     if (value == null)
       return 'null';
 
     switch (type) {
       case 'text': case 'string':
-        if (value is String)
-          return encodeString(value);
-        break;
+        return encodeString(value.toString());
 
       case 'integer': case 'smallint':
       case 'bigint': case 'serial':
@@ -62,11 +63,10 @@ class DefaultTypeConverter implements TypeConverter {
 
       case 'real': case 'double':
       case 'num': case 'number':
-        if (value is num)
+      case 'numeric': case 'decimal': //Work only for smaller precision
+        if (value is num || value is BigInt)
           return encodeNumber(value);
         break;
-
-    // TODO numeric, decimal
 
       case 'boolean': case 'bool':
         if (value is bool)
@@ -102,17 +102,17 @@ class DefaultTypeConverter implements TypeConverter {
 
         final t = type.toLowerCase(); //backward compatible
         if (t != type)
-          return encodeValue(value, t, getConnectionName: getConnectionName);
+          return encodeValue(value, t, connectionName: connectionName);
 
-        throw _error('Unknown type name: $type.', getConnectionName);
+        throw _error('Unknown type name: $type.', connectionName);
     }
 
     throw _error('Invalid runtime type and type modifier: '
-        '${value.runtimeType} to $type.', getConnectionName);
+        '${value.runtimeType} to $type.', connectionName);
   }
   
   // Unspecified type name. Use default type mapping.
-  String encodeValueDefault(value, {getConnectionName()}) {
+  String encodeValueDefault(value, {String? connectionName}) {
     if (value == null)
       return 'null';
     if (value is num)
@@ -135,7 +135,7 @@ class DefaultTypeConverter implements TypeConverter {
     return n.toString();
   }
   
-  String encodeArray(List value, {String pgType}) {
+  String encodeArray(List value, {String? pgType}) {
     final buf = new StringBuffer('array[');
     for (final v in value) {
       if (buf.length > 6) buf.write(',');
@@ -146,7 +146,7 @@ class DefaultTypeConverter implements TypeConverter {
     return buf.toString();
   }
 
-  String encodeDateTime(DateTime datetime, {bool isDateOnly}) {
+  String encodeDateTime(DateTime? datetime, {bool isDateOnly: false}) {
       if (datetime == null)
       return 'null';
 
@@ -199,7 +199,7 @@ class DefaultTypeConverter implements TypeConverter {
     throw _error('bytea encoding not implemented. Pull requests welcome ;)', null);
   }
   
-  decodeValue(String value, int pgType, {getConnectionName()}) {
+  decodeValue(String value, int pgType, {String? connectionName}) {
     switch (pgType) {
       case _BOOL:
         return value == 't';
@@ -211,23 +211,17 @@ class DefaultTypeConverter implements TypeConverter {
 
       case _FLOAT4: // real
       case _FLOAT8: // double precision
+      case _NUMERIC: //Work only for smaller precision
         return double.parse(value);
   
       case _TIMESTAMP:
       case _TIMESTAMPZ:
       case _DATE:
-        return decodeDateTime(value, pgType, getConnectionName: getConnectionName);
+        return decodeDateTime(value, pgType, connectionName: connectionName);
 
       case _JSON:
       case _JSONB:
         return jsonDecode(value);
-
-      case _NUMERIC:
-        try {
-          return BigInt.parse(value);
-        } catch (_) {
-        }
-        return value;
 
       //TODO binary bytea
   
@@ -240,7 +234,7 @@ class DefaultTypeConverter implements TypeConverter {
       default:
         final scalarType = _arrayTypes[pgType];
         if (scalarType != null)
-          return decodeArray(value, scalarType, getConnectionName: getConnectionName);
+          return decodeArray(value, scalarType, connectionName: connectionName);
 
         // Return a string for unknown types. The end user can parse this.
         return value;
@@ -279,7 +273,7 @@ class DefaultTypeConverter implements TypeConverter {
   /// Decodes [value] into a [DateTime] instance.
   /// 
   /// Note: it will convert it to local time (via [DateTime.toLocal])
-  DateTime decodeDateTime(String value, int pgType, {getConnectionName()}) {
+  DateTime decodeDateTime(String value, int pgType, {String? connectionName}) {
     // Built in Dart dates can either be local time or utc. Which means that the
     // the postgresql timezone parameter for the connection must be either set
     // to UTC, or the local time of the server on which the client is running.
@@ -288,7 +282,7 @@ class DefaultTypeConverter implements TypeConverter {
 
     if (value == 'infinity' || value == '-infinity')
       throw _error('A timestamp value "$value", cannot be represented '
-          'as a Dart object.', getConnectionName);
+          'as a Dart object.', connectionName);
           //if infinity values are required, rewrite the sql query to cast
           //the value to a string, i.e. your_column::text.
 
@@ -309,7 +303,7 @@ class DefaultTypeConverter implements TypeConverter {
   }
 
   /// Decodes an array value, [value]. Each item of it is [pgType].
-  decodeArray(String value, int pgType, {getConnectionName()}) {
+  decodeArray(String value, int pgType, {String? connectionName}) {
     final len = value.length - 2;
     assert(value.codeUnitAt(0) == $lbrace && value.codeUnitAt(len + 1) == $rbrace);
     if (len <= 0) return [];
@@ -351,7 +345,7 @@ class DefaultTypeConverter implements TypeConverter {
     final result = [];
     for (final v in value.split(','))
       result.add(v == 'NULL' ? null:
-          decodeValue(v, pgType, getConnectionName: getConnectionName));
+          decodeValue(v, pgType, connectionName: connectionName));
     return result;
   }
 }
