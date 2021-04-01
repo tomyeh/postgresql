@@ -1,7 +1,6 @@
 part of postgresql.impl;
 
 class ConnectionImpl implements Connection {
-
   ConnectionImpl._private(
       this._socket,
       Settings settings,
@@ -9,14 +8,13 @@ class ConnectionImpl implements Connection {
       this._timeZone,
       TypeConverter? typeConverter,
       String? debugName)
-    : _userName = settings.user,
-      _password = settings.password,
-      _databaseName = settings.database,
-      _typeConverter = typeConverter == null
-          ? new TypeConverter()
-          : typeConverter,
-      _debugName = debugName ?? 'pg',
-      _buffer = new Buffer((msg) => new PostgresqlException(msg, debugName));
+      : _userName = settings.user,
+        _password = settings.password,
+        _databaseName = settings.database,
+        _typeConverter =
+            typeConverter == null ? new TypeConverter() : typeConverter,
+        _debugName = debugName ?? 'pg',
+        _buffer = new Buffer((msg) => new PostgresqlException(msg, debugName));
 
   @override
   ConnectionState get state => _state;
@@ -25,7 +23,7 @@ class ConnectionImpl implements Connection {
   TransactionState _transactionState = unknown;
   @override
   TransactionState get transactionState => _transactionState;
-  
+
   final String _databaseName;
   final String _userName;
   final String _password;
@@ -40,6 +38,7 @@ class ConnectionImpl implements Connection {
   _Query? _query;
   int? _msgType;
   int? _msgLength;
+  Function(String)? logger;
   //int _secretKey;
 
   int? _backendPid;
@@ -47,38 +46,37 @@ class ConnectionImpl implements Connection {
 
   @override
   int? get backendPid => _backendPid;
-  
+
   String get debugName => _debugName;
 
   @override
   String toString() => '$debugName:$_backendPid';
-    
+
   final _parameters = new Map<String, String>();
-  
-  Map<String,String>? _parametersView;
+
+  Map<String, String>? _parametersView;
 
   @override
-  Map<String,String> get parameters
-  => _parametersView ??
+  Map<String, String> get parameters =>
+      _parametersView ??
       (_parametersView = new UnmodifiableMapView(_parameters));
 
   @override
   Stream<Message> get messages => _messages.stream;
 
   final _messages = new StreamController<Message>.broadcast();
-  
-  static Future<ConnectionImpl> connect(
-      String uri,
+
+  static Future<ConnectionImpl> connect(String uri,
       {Duration? connectionTimeout,
-       String? applicationName,
-       String? timeZone,
-       TypeConverter? typeConverter,
-       String? debugName,
-       Future<Socket> mockSocketConnect(String host, int port)?}) async {
-        
+      String? applicationName,
+      String? timeZone,
+      TypeConverter? typeConverter,
+      String? debugName,
+      Function(String)? logger,
+      Future<Socket> mockSocketConnect(String host, int port)?}) async {
     var settings = new Settings.fromUri(uri);
 
-    //FIXME Currently this timeout doesn't cancel the socket connection 
+    //FIXME Currently this timeout doesn't cancel the socket connection
     // process.
     // There is a bug open about adding a real socket connect timeout
     // parameter to Socket.connect() if this happens then start using it.
@@ -88,26 +86,26 @@ class ConnectionImpl implements Connection {
 
     var onTimeout = () => throw new PostgresqlException(
         'Postgresql connection timed out. Timeout: $connectionTimeout.',
-        debugName ?? 'pg', exception: peConnectionTimeout);
-    
-    var connectFunc = mockSocketConnect == null
-        ? Socket.connect
-        : mockSocketConnect;
-    
+        debugName ?? 'pg',
+        exception: peConnectionTimeout);
+
+    var connectFunc =
+        mockSocketConnect == null ? Socket.connect : mockSocketConnect;
+
     Future<Socket> future = connectFunc(settings.host, settings.port)
         .timeout(connectionTimeout, onTimeout: onTimeout);
-    
+
     if (settings.requireSsl) future = _connectSsl(future);
 
-    final socket = await future.timeout(connectionTimeout, onTimeout: onTimeout);
-      
-    var conn = new ConnectionImpl._private(socket, settings,
-        applicationName, timeZone, typeConverter, debugName);
-    
+    final socket =
+        await future.timeout(connectionTimeout, onTimeout: onTimeout);
+
+    var conn = new ConnectionImpl._private(
+        socket, settings, applicationName, timeZone, typeConverter, debugName);
+
     socket.listen(conn._readData,
-        onError: conn._handleSocketError,
-        onDone: conn._handleSocketClosed);
-    
+        onError: conn._handleSocketError, onDone: conn._handleSocketClosed);
+
     conn
       .._state = socketConnected
       .._sendStartupMessage();
@@ -121,19 +119,17 @@ class ConnectionImpl implements Connection {
 
   //TODO yuck - this needs a rewrite.
   static Future<SecureSocket> _connectSsl(Future<Socket> future) {
-
     var completer = new Completer<SecureSocket>();
 
     future.then((socket) {
-
       socket.listen((data) {
         if (data[0] != _S) {
           socket.destroy();
-          completer.completeError(
-              new PostgresqlException(
-                  'This postgresql server is not configured to support SSL '
-                  'connections.', null, //FIXME ideally pass the connection pool name through to this exception.
-                  exception: peConnectionFailed));
+          completer.completeError(new PostgresqlException(
+              'This postgresql server is not configured to support SSL '
+              'connections.',
+              null, //FIXME ideally pass the connection pool name through to this exception.
+              exception: peConnectionFailed));
         } else {
           // TODO add option to only allow valid certs.
           // Note libpq also defaults to ignoring bad certificates, so this is
@@ -141,15 +137,14 @@ class ConnectionImpl implements Connection {
           // TODO consider adding a warning if certificate is invalid so that it
           // is at least logged.
           SecureSocket.secure(socket, onBadCertificate: (cert) => true)
-            .then(completer.complete)
-            .catchError(completer.completeError);
+              .then(completer.complete)
+              .catchError(completer.completeError);
         }
       });
 
       // Write header, and SSL magic number.
       socket.add(const [0, 0, 0, 8, 4, 210, 22, 47]);
-    })
-    .catchError((ex, st) {
+    }).catchError((ex, st) {
       completer.completeError(ex, st);
     });
 
@@ -158,8 +153,7 @@ class ConnectionImpl implements Connection {
 
   void _sendStartupMessage() {
     if (_state != socketConnected)
-      throw new PostgresqlException(
-          'Invalid state during startup.', _debugName,
+      throw new PostgresqlException('Invalid state during startup.', _debugName,
           exception: peConnectionFailed);
 
     var msg = new MessageBuffer();
@@ -206,9 +200,11 @@ class ConnectionImpl implements Connection {
 
     // Only MD5 authentication is supported.
     if (authType != _AUTH_TYPE_MD5) {
-      throw new PostgresqlException('Unsupported or unknown authentication '
+      throw new PostgresqlException(
+          'Unsupported or unknown authentication '
           'type: ${_authTypeAsString(authType)}, only MD5 authentication is '
-          'supported.', _debugName,
+          'supported.',
+          _debugName,
           exception: peConnectionFailed);
     }
 
@@ -232,13 +228,11 @@ class ConnectionImpl implements Connection {
     int c = _buffer.readByte();
 
     if (c == _I || c == _T || c == _E) {
-
       if (c == _I)
         _transactionState = none;
       else if (c == _T)
         _transactionState = begun;
-      else if (c == _E)
-        _transactionState = error;
+      else if (c == _E) _transactionState = error;
 
       var was = _state;
 
@@ -253,16 +247,16 @@ class ConnectionImpl implements Connection {
       }
 
       Timer.run(_processSendQueryQueue);
-
     } else {
       _destroy();
-      throw new PostgresqlException('Unknown ReadyForQuery transaction status: '
-          '${_itoa(c)}.', _debugName);
+      throw new PostgresqlException(
+          'Unknown ReadyForQuery transaction status: '
+          '${_itoa(c)}.',
+          _debugName);
     }
   }
 
   void _handleSocketError(error, {bool closed: false}) {
-
     if (_state == closed) {
       _messages.add(new ClientMessageImpl(
           isError: false,
@@ -279,17 +273,20 @@ class ConnectionImpl implements Connection {
     var msg = closed ? 'Socket closed unexpectedly.' : 'Socket error.';
 
     if (!_hasConnected) {
-      _connected.completeError(new PostgresqlException(msg, debugName,
-          exception: error));
+      _connected.completeError(
+          new PostgresqlException(msg, debugName, exception: error));
     } else {
       final query = _query;
       if (query != null) {
-        query.addError(new PostgresqlException(msg, debugName,
-            exception: error));
+        query.addError(
+            new PostgresqlException(msg, debugName, exception: error));
       } else {
         _messages.add(new ClientMessage(
-            isError: true, connectionName: debugName, severity: 'ERROR',
-            message: msg, exception: error));
+            isError: true,
+            connectionName: debugName,
+            severity: 'ERROR',
+            message: msg,
+            exception: error));
       }
     }
   }
@@ -301,11 +298,8 @@ class ConnectionImpl implements Connection {
   }
 
   void _readData(List<int> data) {
-
     try {
-
-      if (_state == closed)
-        return;
+      if (_state == closed) return;
 
       _buffer.append(data);
 
@@ -314,7 +308,7 @@ class ConnectionImpl implements Connection {
       if (msgType != null) {
         final msgLength = _msgLength!;
         if (msgLength > _buffer.bytesAvailable)
-            return; // Wait for entire message to be in buffer.
+          return; // Wait for entire message to be in buffer.
 
         _readMessage(msgType, msgLength);
 
@@ -324,9 +318,7 @@ class ConnectionImpl implements Connection {
 
       // Main message loop.
       while (_state != closed) {
-
-        if (_buffer.bytesAvailable < 5)
-          return; // Wait for more data.
+        if (_buffer.bytesAvailable < 5) return; // Wait for more data.
 
         // Message length is the message length excluding the message type code, but
         // including the 4 bytes for the length fields. Only the length of the body
@@ -341,14 +333,13 @@ class ConnectionImpl implements Connection {
         if (length > _buffer.bytesAvailable) {
           // Wait for entire message to be in buffer.
           // Store type, and length for when more data becomes available.
-          _msgType =  msgType;
+          _msgType = msgType;
           _msgLength = length;
           return;
         }
 
         _readMessage(msgType, length);
       }
-
     } catch (_) {
       _destroy();
       rethrow;
@@ -356,7 +347,6 @@ class ConnectionImpl implements Connection {
   }
 
   bool _checkMessageLength(int msgType, int msgLength) {
-
     if (_state == authenticating) {
       if (msgLength < 8) return false;
       if (msgType == _MSG_AUTH_REQUEST && msgLength > 2000) return false;
@@ -366,13 +356,14 @@ class ConnectionImpl implements Connection {
 
       // These are the only messages from the server which may exceed 30,000
       // bytes.
-      if (msgLength > 30000 && (msgType != _MSG_NOTICE_RESPONSE
-          && msgType != _MSG_ERROR_RESPONSE
-          && msgType != _MSG_COPY_DATA
-          && msgType != _MSG_ROW_DESCRIPTION
-          && msgType != _MSG_DATA_ROW
-          && msgType != _MSG_FUNCTION_CALL_RESPONSE
-          && msgType != _MSG_NOTIFICATION_RESPONSE)) {
+      if (msgLength > 30000 &&
+          (msgType != _MSG_NOTICE_RESPONSE &&
+              msgType != _MSG_ERROR_RESPONSE &&
+              msgType != _MSG_COPY_DATA &&
+              msgType != _MSG_ROW_DESCRIPTION &&
+              msgType != _MSG_DATA_ROW &&
+              msgType != _MSG_FUNCTION_CALL_RESPONSE &&
+              msgType != _MSG_NOTIFICATION_RESPONSE)) {
         return false;
       }
     }
@@ -380,29 +371,46 @@ class ConnectionImpl implements Connection {
   }
 
   void _readMessage(int msgType, int length) {
-
     int pos = _buffer.bytesRead;
 
     switch (msgType) {
-
-      case _MSG_AUTH_REQUEST:     _readAuthenticationRequest(msgType, length); break;
-      case _MSG_READY_FOR_QUERY:  _readReadyForQuery(msgType, length); break;
+      case _MSG_AUTH_REQUEST:
+        _readAuthenticationRequest(msgType, length);
+        break;
+      case _MSG_READY_FOR_QUERY:
+        _readReadyForQuery(msgType, length);
+        break;
 
       case _MSG_ERROR_RESPONSE:
       case _MSG_NOTICE_RESPONSE:
-                                  _readErrorOrNoticeResponse(msgType, length); break;
+        _readErrorOrNoticeResponse(msgType, length);
+        break;
 
-      case _MSG_BACKEND_KEY_DATA: _readBackendKeyData(msgType, length); break;
-      case _MSG_PARAMETER_STATUS: _readParameterStatus(msgType, length); break;
+      case _MSG_BACKEND_KEY_DATA:
+        _readBackendKeyData(msgType, length);
+        break;
+      case _MSG_PARAMETER_STATUS:
+        _readParameterStatus(msgType, length);
+        break;
 
-      case _MSG_ROW_DESCRIPTION:  _readRowDescription(msgType, length); break;
-      case _MSG_DATA_ROW:         _readDataRow(msgType, length); break;
-      case _MSG_EMPTY_QUERY_REPONSE: assert(length == 0); break;
-      case _MSG_COMMAND_COMPLETE: _readCommandComplete(msgType, length); break;
+      case _MSG_ROW_DESCRIPTION:
+        _readRowDescription(msgType, length);
+        break;
+      case _MSG_DATA_ROW:
+        _readDataRow(msgType, length);
+        break;
+      case _MSG_EMPTY_QUERY_REPONSE:
+        assert(length == 0);
+        break;
+      case _MSG_COMMAND_COMPLETE:
+        _readCommandComplete(msgType, length);
+        break;
 
       default:
-        throw new PostgresqlException('Unknown, or unimplemented message: '
-            '${utf8.decode([msgType])}.', debugName);
+        throw new PostgresqlException(
+            'Unknown, or unimplemented message: '
+            '${utf8.decode([msgType])}.',
+            debugName);
     }
 
     if (pos + length != _buffer.bytesRead)
@@ -420,19 +428,17 @@ class ConnectionImpl implements Connection {
       errorCode = _buffer.readByte();
     }
 
-    var msg = new ServerMessageImpl(
-                         msgType == _MSG_ERROR_RESPONSE,
-                         map,
-                         debugName);
+    var msg =
+        new ServerMessageImpl(msgType == _MSG_ERROR_RESPONSE, map, debugName);
 
-    var ex = new PostgresqlException(msg.message, debugName,
-        serverMessage: msg);
-    
+    var ex =
+        new PostgresqlException(msg.message, debugName, serverMessage: msg);
+
     if (msgType == _MSG_ERROR_RESPONSE) {
       if (!_hasConnected) {
-          _state = closed;
-          _socket.destroy();
-          _connected.completeError(ex);
+        _state = closed;
+        _socket.destroy();
+        _connected.completeError(ex);
       } else {
         final query = _query;
         if (query != null) {
@@ -456,30 +462,27 @@ class ConnectionImpl implements Connection {
     assert(_buffer.bytesAvailable >= length);
     var name = _buffer.readUtf8String(10000);
     var value = _buffer.readUtf8String(10000);
-    
+
     warn(msg) {
       _messages.add(new ClientMessageImpl(
-        severity: 'WARNING',
-        message: msg,
-        connectionName: debugName));
+          severity: 'WARNING', message: msg, connectionName: debugName));
     }
-    
+
     _parameters[name] = value;
-    
+
     // Cache this value so that it doesn't need to be looked up from the map.
     //if (name == 'TimeZone') _isUtcTimeZone = value == 'UTC';
-    
+
     if (name == 'client_encoding' && value != 'UTF8') {
-      warn('client_encoding parameter must remain as UTF8 for correct string ' 
-           'handling. client_encoding is: "$value".');     
+      warn('client_encoding parameter must remain as UTF8 for correct string '
+          'handling. client_encoding is: "$value".');
     }
   }
 
   @override
   Stream<Row> query(String sql, [values]) {
     try {
-      if (values != null)
-        sql = substitute(sql, values, _typeConverter.encode);
+      if (values != null) sql = substitute(sql, values, _typeConverter.encode);
       var query = _enqueueQuery(sql);
       return query.stream as Stream<Row>;
     } catch (ex, st) {
@@ -489,8 +492,7 @@ class ConnectionImpl implements Connection {
 
   @override
   Future<int> execute(String sql, [values]) async {
-    if (values != null)
-      sql = substitute(sql, values, _typeConverter.encode);
+    if (values != null) sql = substitute(sql, values, _typeConverter.encode);
 
     var query = _enqueueQuery(sql);
     await query.stream.isEmpty;
@@ -498,8 +500,8 @@ class ConnectionImpl implements Connection {
   }
 
   @override
-  Future<T> runInTransaction<T>(Future<T> operation(), [Isolation isolation = Isolation.readCommitted]) async {
-
+  Future<T> runInTransaction<T>(Future<T> operation(),
+      [Isolation isolation = Isolation.readCommitted]) async {
     var begin = 'begin';
     if (isolation == Isolation.repeatableRead)
       begin = 'begin; set transaction isolation level repeatable read;';
@@ -518,10 +520,8 @@ class ConnectionImpl implements Connection {
   }
 
   _Query _enqueueQuery(String sql) {
-
     if (sql == '')
-      throw new PostgresqlException(
-          'SQL query is null or empty.', debugName);
+      throw new PostgresqlException('SQL query is null or empty.', debugName);
 
     if (sql.contains('\u0000'))
       throw new PostgresqlException(
@@ -532,6 +532,9 @@ class ConnectionImpl implements Connection {
           'Connection is closed, cannot execute query.', debugName,
           exception: peConnectionClosed);
 
+    // if logger active - log sql
+    if (logger != null) logger!(sql);
+
     var query = new _Query(sql);
     _sendQueryQueue.addLast(query);
 
@@ -541,15 +544,11 @@ class ConnectionImpl implements Connection {
   }
 
   void _processSendQueryQueue() {
+    if (_sendQueryQueue.isEmpty) return;
 
-    if (_sendQueryQueue.isEmpty)
-      return;
+    if (_query != null) return;
 
-    if (_query != null)
-      return;
-
-    if (_state == closed)
-      return;
+    if (_state == closed) return;
 
     assert(_state == idle);
 
@@ -569,14 +568,13 @@ class ConnectionImpl implements Connection {
   }
 
   void _readRowDescription(int msgType, int length) {
-
     assert(_buffer.bytesAvailable >= length);
 
     _state = streaming;
 
     int count = _buffer.readInt16();
     var list = <_Column>[];
-    
+
     for (int i = 0; i < count; i++) {
       var name = _buffer.readUtf8String(length); //TODO better maxSize.
       int fieldId = _buffer.readInt32();
@@ -586,7 +584,8 @@ class ConnectionImpl implements Connection {
       int typeModifier = _buffer.readInt32();
       int formatCode = _buffer.readInt16();
 
-      list.add(new _Column(i, name, fieldId, tableColNo, fieldType, dataSize, typeModifier, formatCode));
+      list.add(new _Column(i, name, fieldId, tableColNo, fieldType, dataSize,
+          typeModifier, formatCode));
     }
 
     final query = _query!;
@@ -598,7 +597,6 @@ class ConnectionImpl implements Connection {
   }
 
   void _readDataRow(int msgType, int length) {
-
     assert(_buffer.bytesAvailable >= length);
 
     int columns = _buffer.readInt16();
@@ -609,7 +607,6 @@ class ConnectionImpl implements Connection {
   }
 
   void _readColumnData(int index, int colSize) {
-
     assert(_buffer.bytesAvailable >= colSize);
 
     final query = _query!;
@@ -621,23 +618,22 @@ class ConnectionImpl implements Connection {
       rowData[index] = null;
     } else {
       var col = query._columns![index];
-      if (col.isBinary) throw new PostgresqlException(
-          'Binary result set parsing is not implemented.', debugName);
+      if (col.isBinary)
+        throw new PostgresqlException(
+            'Binary result set parsing is not implemented.', debugName);
 
       var str = _buffer.readUtf8StringN(colSize),
-        value = _typeConverter.decode(str, col.fieldType, 
-            connectionName: _debugName);
+          value = _typeConverter.decode(str, col.fieldType,
+              connectionName: _debugName);
 
       rowData[index] = value;
     }
 
     // If last column, then return the row.
-    if (index == query._columnCount! - 1)
-      query.addRow();
+    if (index == query._columnCount! - 1) query.addRow();
   }
 
   void _readCommandComplete(int msgType, int length) {
-
     assert(_buffer.bytesAvailable >= length);
 
     var commandString = _buffer.readUtf8String(length);
@@ -650,9 +646,7 @@ class ConnectionImpl implements Connection {
 
   @override
   void close() {
-    
-    if (_state == closed)
-      return;
+    if (_state == closed) return;
 
     _state = closed;
 
@@ -668,7 +662,7 @@ class ConnectionImpl implements Connection {
         _query = null;
       }
     }
-    
+
     try {
       var msg = new MessageBuffer();
       msg.addByte(_MSG_TERMINATE);
@@ -681,7 +675,7 @@ class ConnectionImpl implements Connection {
       _messages.add(new ClientMessageImpl(
           severity: 'WARNING',
           message: 'Exception while closing connection. Closed without sending '
-            'terminate message.',
+              'terminate message.',
           connectionName: debugName,
           exception: e,
           stackTrace: st));

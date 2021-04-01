@@ -1,60 +1,56 @@
 library postgresql;
 
 import 'dart:async';
+
 import 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart' as impl;
 
 export 'package:postgresql2/src/postgresql_impl/postgresql_impl.dart'
-  show encodeString, escapes, escapePattern,
-       DefaultTypeConverter;
-export 'package:postgresql2/src/substitute.dart'
-  show substitute;
+    show encodeString, escapes, escapePattern, DefaultTypeConverter;
+export 'package:postgresql2/src/substitute.dart' show substitute;
 
 /// Connect to a PostgreSQL database.
-/// 
+///
 /// A uri has the following format:
-/// 
+///
 ///     'postgres://username:password@hostname:5432/database'
 ///
 /// The application name is displayed in the pg_stat_activity view. This
 /// parameter is optional.
-/// 
+///
 /// Care is required when setting the time zone, this is generally not required,
-/// the default, if omitted, is to use the server provided default which will 
+/// the default, if omitted, is to use the server provided default which will
 /// typically be localtime or sometimes UTC. Setting the time zone to UTC will
 /// override the server provided default and all [DateTime] objects will be
-/// returned in UTC. In the case where the application server is on a different 
+/// returned in UTC. In the case where the application server is on a different
 /// host than the database, and the host's [DateTime]s should be in the hosts
-/// localtime, then set this to the host's local time zone name. On linux 
+/// localtime, then set this to the host's local time zone name. On linux
 /// systems this can be obtained using:
-/// 
+///
 ///     new File('/etc/timezone').readAsStringSync().trim()
-/// 
+///
 /// The debug name is shown in error messages, this helps tracking down which
 /// connection caused an error.
-/// 
+///
 /// The type converter allows the end user to provide their own mapping to and
 /// from Dart types to PostgreSQL types.
 
-Future<Connection> connect(
-    String uri, 
-    { Duration? connectionTimeout,
-      String? applicationName,
-      String? timeZone,
-      TypeConverter? typeConverter,
-      String? debugName})
-    
-      => impl.ConnectionImpl.connect(
-            uri,
-            connectionTimeout: connectionTimeout,
-            applicationName: applicationName,
-            timeZone: timeZone,
-            typeConverter: typeConverter,
-            debugName: debugName);
-
+Future<Connection> connect(String uri,
+        {Duration? connectionTimeout,
+        String? applicationName,
+        String? timeZone,
+        TypeConverter? typeConverter,
+        String? debugName,
+        Function(String)? logger}) =>
+    impl.ConnectionImpl.connect(uri,
+        connectionTimeout: connectionTimeout,
+        applicationName: applicationName,
+        timeZone: timeZone,
+        typeConverter: typeConverter,
+        debugName: debugName,
+        logger: logger);
 
 /// A connection to a PostgreSQL database.
 abstract class Connection {
-
   /// Queue a sql query to be run, returning a [Stream] of [Row]s.
   ///
   /// If another query is already in progress, then the query will be queued
@@ -76,56 +72,55 @@ abstract class Connection {
   /// or other special characters these will be escaped.
   ///
   /// For example:
-  ///  
+  ///
   ///     var a = 'bar';
   ///     var b = 42;
-  ///     
+  ///
   ///     conn.query("insert into foo_table values (@a, @b);", {'a': a, 'b': b})
   ///       .then(...);
-  ///       
+  ///
   ///  Or:
-  ///  
+  ///
   ///     conn.query("insert into foo_table values (@0, @1);", [a, b])
   ///        .then(...);
-  ///        
+  ///
   ///  If you need to use an '@' character in your query then you will need to
   ///  escape it as '@@'. If no values are provided, then there is no need to
   ///  escape '@' characters.
   Stream<Row> query(String sql, [values]);
-
 
   /// Queues a command for execution, and when done, returns the number of rows
   /// affected by the sql command. Indentical to [query] apart from the
   /// information returned.
   Future<int> execute(String sql, [values]);
 
-
   /// Allow multiple queries to be run in a transaction. The user must wait for
   /// runInTransaction() to complete before making any further queries.
   Future<T> runInTransaction<T>(Future<T> operation(), [Isolation isolation]);
-
 
   /// Close the current [Connection]. It is safe to call this multiple times.
   /// This will never throw an exception.
   void close();
 
   /// The server can send errors and notices, or the network can cause errors
-  /// while the connection is not being used to make a query. These can be 
-  /// caught by listening to the messages stream. See [ClientMessage] and 
+  /// while the connection is not being used to make a query. These can be
+  /// caught by listening to the messages stream. See [ClientMessage] and
   /// [ServerMessage] for more information.
   Stream<Message> get messages;
 
   /// Server configuration parameters such as date format and timezone.
-  Map<String,String> get parameters;
-  
+  Map<String, String> get parameters;
+
   /// The pid of the process the server started to handle this connection.
   int? get backendPid;
-  
+
   /// The current state of the connection.
   ConnectionState get state;
 
   /// The state of the current transaction.
   TransactionState get transactionState;
+
+  Function(String)? logger;
 }
 
 /// Row allows field values to be retrieved as if they were getters.
@@ -141,17 +136,16 @@ abstract class Connection {
 ///        .then((row) => print(row[0]));
 ///
 abstract class Row {
-  
   /// Get a column value by column index (zero based).
-  operator[] (int i);
-  
+  operator [](int i);
+
   /// Iterate through column names and values.
   void forEach(void f(String columnName, columnValue));
-  
+
   /// An unmodifiable list of column values.
   List toList();
-  
-  /// An unmodifiable map of column names and values. 
+
+  /// An unmodifiable map of column names and values.
   Map toMap();
 
   List<Column> getColumns();
@@ -171,12 +165,10 @@ abstract class Column {
   bool get isBinary;
 }
 
-
 /// The server can send errors and notices, or the network can cause errors
-/// while the connection is not being used to make a query. See 
+/// while the connection is not being used to make a query. See
 /// [ClientMessage] and [ServerMessage] for more information.
 abstract class Message {
-    
   /// Returns true if this is an error, otherwise it is a server-side notice,
   /// or logging.
   bool get isError;
@@ -198,30 +190,28 @@ abstract class Message {
 
 /// An error or warning generated by the client.
 abstract class ClientMessage implements Message {
-
   factory ClientMessage(
-                {bool isError,
-                 required String severity,
-                 required String message,
-                 String? connectionName,
-                 Object? exception,
-                 StackTrace? stackTrace}) = impl.ClientMessageImpl;
+      {bool isError,
+      required String severity,
+      required String message,
+      String? connectionName,
+      Object? exception,
+      StackTrace? stackTrace}) = impl.ClientMessageImpl;
 
   Object? get exception;
-  
+
   StackTrace? get stackTrace;
 }
 
 /// Represents an error or a notice sent from the postgresql server.
 abstract class ServerMessage implements Message {
-
   /// Returns true if this is an error, otherwise it is a server-side notice.
   @override
   bool get isError;
 
   /// All of the information returned from the server.
-  Map<String,String> get fields;
-  
+  Map<String, String> get fields;
+
   /// An identifier for the connection. Useful for logging messages in a
   /// connection pool.
   @override
@@ -233,18 +223,18 @@ abstract class ServerMessage implements Message {
   /// WARNING, NOTICE, DEBUG, INFO, or LOG.
   @override
   String? get severity;
-  
+
   /// A PostgreSQL error code.
   /// See http://www.postgresql.org/docs/9.2/static/errcodes-appendix.html
   String? get code;
-  
+
   /// A human readible error message, typically one line.
   @override
   String? get message;
 
   /// More detailed information.
   String? get detail;
-  
+
   String? get hint;
 
   /// The position as an index into the original query string where the syntax
@@ -252,7 +242,7 @@ abstract class ServerMessage implements Message {
   /// measured in characters not bytes. If the server does not supply a
   /// position this field is null.
   String? get position;
-  
+
   String? get internalPosition;
   String? get internalQuery;
   String? get where;
@@ -267,15 +257,14 @@ abstract class ServerMessage implements Message {
 }
 
 /// By implementing this class and passing it to connect(), it is possible to
-/// provide a customised handling of the Dart type encoding and PostgreSQL type 
-/// decoding. 
+/// provide a customised handling of the Dart type encoding and PostgreSQL type
+/// decoding.
 abstract class TypeConverter {
-
   factory TypeConverter() = impl.DefaultTypeConverter;
 
   /// Returns all results in the raw postgresql string format without conversion.
   factory TypeConverter.raw() = impl.RawTypeConverter;
-  
+
   /// Convert an object to a string representation to use in a sql query.
   /// Be very careful to escape your strings correctly. If you get this wrong
   /// you will introduce a sql injection vulnerability. Consider using the
@@ -285,7 +274,6 @@ abstract class TypeConverter {
   /// Convert a string recieved from the database into a dart object.
   Object decode(String value, int pgType, {String? connectionName});
 }
-
 
 //TODO change to enum once implemented.
 
@@ -297,10 +285,14 @@ class ConnectionState {
   @override
   String toString() => _name;
 
-  static const ConnectionState notConnected = const ConnectionState('notConnected');
-  static const ConnectionState socketConnected = const ConnectionState('socketConnected');
-  static const ConnectionState authenticating = const ConnectionState('authenticating');
-  static const ConnectionState authenticated = const ConnectionState('authenticated');
+  static const ConnectionState notConnected =
+      const ConnectionState('notConnected');
+  static const ConnectionState socketConnected =
+      const ConnectionState('socketConnected');
+  static const ConnectionState authenticating =
+      const ConnectionState('authenticating');
+  static const ConnectionState authenticated =
+      const ConnectionState('authenticated');
   static const ConnectionState idle = const ConnectionState('idle');
   static const ConnectionState busy = const ConnectionState('busy');
 
@@ -315,7 +307,7 @@ class ConnectionState {
 /// if the transaction has failed.
 class TransactionState {
   final String _name;
-  
+
   const TransactionState(this._name);
 
   @override
@@ -325,13 +317,13 @@ class TransactionState {
   /// query may change the transaction state. Wait until the query is completed
   /// to query the transaction state.
   static const TransactionState unknown = const TransactionState('unknown');
-  
+
   /// The current session has not opened a transaction.
   static const TransactionState none = const TransactionState('none');
-  
+
   /// The current session has an open transaction.
   static const TransactionState begun = const TransactionState('begun');
-  
+
   /// A transaction was opened on the current session, but an error occurred.
   /// In this state all futher commands will be ignored until a rollback is
   /// issued.
@@ -354,17 +346,16 @@ class Isolation {
 }
 
 class PostgresqlException implements Exception {
-  
-  PostgresqlException(this.message, this.connectionName, {
-    this.serverMessage, this.exception});
-  
+  PostgresqlException(this.message, this.connectionName,
+      {this.serverMessage, this.exception});
+
   final String message;
-  
+
   /// Note the connection name can be null in some cases when thrown by pool.
   final String? connectionName;
-  
+
   final ServerMessage? serverMessage;
-  
+
   /// Note may be null.
   final Object? exception;
 
@@ -378,13 +369,13 @@ class PostgresqlException implements Exception {
 /// Settings can be used to create a postgresql uri for use in the [connect]
 /// function.
 abstract class Settings {
-
   /// The default port used by a PostgreSQL server.
   static const int defaultPort = 5432;
-  
-  factory Settings(String host, int port, String user, String password,
-      String database, {bool requireSsl}) = impl.SettingsImpl;
-  
+
+  factory Settings(
+      String host, int port, String user, String password, String database,
+      {bool requireSsl}) = impl.SettingsImpl;
+
   /// Parse a PostgreSQL URI string.
   factory Settings.fromUri(String uri) = impl.SettingsImpl.fromUri;
 
