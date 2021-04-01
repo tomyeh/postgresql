@@ -7,14 +7,18 @@ class ConnectionImpl implements Connection {
       this._applicationName,
       this._timeZone,
       TypeConverter? typeConverter,
-      String? debugName)
+      String? debugName,
+      void Function(String)? logger)
       : _userName = settings.user,
         _password = settings.password,
         _databaseName = settings.database,
         _typeConverter =
             typeConverter == null ? new TypeConverter() : typeConverter,
         _debugName = debugName ?? 'pg',
-        _buffer = new Buffer((msg) => new PostgresqlException(msg, debugName));
+        _buffer = new Buffer(
+          (msg) => new PostgresqlException(msg, debugName),
+        ),
+        _logger = logger;
 
   @override
   ConnectionState get state => _state;
@@ -38,7 +42,7 @@ class ConnectionImpl implements Connection {
   _Query? _query;
   int? _msgType;
   int? _msgLength;
-  Function(String)? logger;
+  void Function(String)? _logger;
   //int _secretKey;
 
   int? _backendPid;
@@ -72,7 +76,7 @@ class ConnectionImpl implements Connection {
       String? timeZone,
       TypeConverter? typeConverter,
       String? debugName,
-      Function(String)? logger,
+      void Function(String)? logger,
       Future<Socket> mockSocketConnect(String host, int port)?}) async {
     var settings = new Settings.fromUri(uri);
 
@@ -100,8 +104,8 @@ class ConnectionImpl implements Connection {
     final socket =
         await future.timeout(connectionTimeout, onTimeout: onTimeout);
 
-    var conn = new ConnectionImpl._private(
-        socket, settings, applicationName, timeZone, typeConverter, debugName);
+    var conn = new ConnectionImpl._private(socket, settings, applicationName,
+        timeZone, typeConverter, debugName, logger);
 
     socket.listen(conn._readData,
         onError: conn._handleSocketError, onDone: conn._handleSocketClosed);
@@ -687,4 +691,7 @@ class ConnectionImpl implements Connection {
     _socket.destroy();
     Timer.run(_messages.close);
   }
+
+  @override
+  void Function(String)? get logger => _logger;
 }

@@ -40,7 +40,7 @@ Future<Connection> connect(String uri,
         String? timeZone,
         TypeConverter? typeConverter,
         String? debugName,
-        Function(String)? logger}) =>
+        void Function(String)? logger}) =>
     impl.ConnectionImpl.connect(uri,
         connectionTimeout: connectionTimeout,
         applicationName: applicationName,
@@ -120,7 +120,7 @@ abstract class Connection {
   /// The state of the current transaction.
   TransactionState get transactionState;
 
-  Function(String)? logger;
+  Function(String)? get logger;
 }
 
 /// Row allows field values to be retrieved as if they were getters.

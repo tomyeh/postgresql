@@ -80,7 +80,7 @@ class ConnectionDecorator implements pg.Connection {
   String toString() => "$_pconn";
 
   @override
-  Function(String)? logger;
+  Function(String)? get logger => _conn.logger;
 }
 
 class PooledConnectionImpl implements PooledConnection {
