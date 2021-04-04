@@ -1,4 +1,4 @@
-### Version 1.0.0-beta
+### Version 1.0.0
 
 * Migrate to null safety
 * Numeric and Decimal types are consider as `double`, instead of `BigInt`.
