@@ -348,7 +348,8 @@ class Isolation {
 
 class PostgresqlException implements Exception {
   
-  PostgresqlException(this.message, this.connectionName, {this.serverMessage, this.exception});
+  PostgresqlException(this.message, this.connectionName,
+      {this.serverMessage, this.exception});
   
   final String message;
   
@@ -359,10 +360,13 @@ class PostgresqlException implements Exception {
   
   /// Note may be null.
   final exception;
-  
+
+  @override  
   String toString() {
-    if (serverMessage != null) return serverMessage.toString();
-    return connectionName == null ? message : '$connectionName $message';
+    final buf = new StringBuffer(serverMessage ?? message);
+    if (exception != null) buf..write(' (')..write(exception)..write(')');
+    if (connectionName != null) buf..write(' #')..write(connectionName);
+    return buf.toString();
   }
 }
 
