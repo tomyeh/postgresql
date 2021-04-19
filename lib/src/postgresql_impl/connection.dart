@@ -417,7 +417,7 @@ class ConnectionImpl implements Connection {
                          _getDebugName());
 
     var ex = new PostgresqlException(msg.message, _getDebugName(),
-        serverMessage: msg);
+        serverMessage: msg, exception: msg.code);
     
     if (msgType == _MSG_ERROR_RESPONSE) {
       if (!_hasConnected) {

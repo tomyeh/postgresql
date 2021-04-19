@@ -28,7 +28,7 @@ class ClientMessageImpl implements ClientMessage {
   
   String toString() => connectionName == null
         ? '$severity $message'
-        : '$connectionName $severity $message';
+        : '$severity $message #$connectionName';
 }
 
 class ServerMessageImpl implements ServerMessage {
@@ -64,5 +64,5 @@ class ServerMessageImpl implements ServerMessage {
   
   String toString() => connectionName == null
       ? '$severity $code $message'
-      : '$connectionName $severity $code $message';
+      : '$severity $code $message #$connectionName';
 }

@@ -365,7 +365,8 @@ class PostgresqlException implements Exception {
   String toString() {
     final buf = new StringBuffer(serverMessage ?? message);
     if (exception != null) buf..write(' (')..write(exception)..write(')');
-    if (connectionName != null) buf..write(' #')..write(connectionName);
+    if (serverMessage == null && connectionName != null)
+      buf..write(' #')..write(connectionName);
     return buf.toString();
   }
 }
