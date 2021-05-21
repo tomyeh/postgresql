@@ -27,10 +27,12 @@ typedef Future<pg.Connection> ConnectionFactory(
      String getDebugName(),
      Future<Socket> mockSocketConnect(String host, int port)});
 
-class ConnectionDecorator implements pg.Connection {
+class ConnectionDecorator implements pg.Connection, pgi.ConnectionOwner {
 
-  ConnectionDecorator(this._pool, PooledConnectionImpl pconn, this._conn)
-      : _pconn = pconn;
+  ConnectionDecorator(this._pool, PooledConnectionImpl pconn, pg.Connection conn)
+      : _pconn = pconn, _conn = conn {
+    if (conn is pgi.ConnectionImpl) conn.owner = this;
+  }
 
   _error(fnName) => new pg.PostgresqlException(
       '$fnName() called on closed connection.', _pconn.name);
@@ -41,8 +43,20 @@ class ConnectionDecorator implements pg.Connection {
   final PooledConnectionImpl _pconn;
 
   void close() {
-    if (!_isReleased) _pool._releaseConnection(_pconn);
-    _isReleased = true;
+    if (_release()) _pool._releaseConnection(_pconn);
+  }
+  @override
+  void destroy() {
+    if (_release()) _pool._destroyConnection(_pconn);
+  }
+
+  ///Returns false if it was released before.
+  bool _release() {
+    if (_isReleased) return false;
+
+    final conn = _conn;
+    if (conn is pgi.ConnectionImpl) conn.owner = _pconn; //restore it
+    return _isReleased = true;
   }
 
   Stream<pg.Row> query(String sql, [values]) => _isReleased
@@ -78,7 +92,7 @@ class ConnectionDecorator implements pg.Connection {
 }
 
 
-class PooledConnectionImpl implements PooledConnection {
+class PooledConnectionImpl implements PooledConnection, pgi.ConnectionOwner {
 
   PooledConnectionImpl(this._pool);
 
@@ -115,6 +129,11 @@ class PooledConnectionImpl implements PooledConnection {
   
   String get name => '${_pool.settings.poolName}:$backendPid'
       + (_useId == null ? '' : ':$_useId');
+
+  @override
+  void destroy() {
+    _pool._destroyConnection(this);
+  }
 
   String toString() => '$name:$_state:$connectionState';
 }
@@ -239,6 +258,7 @@ class PoolImpl implements Pool {
         timeZone: settings.timeZone,
         typeConverter: _typeConverter,
         getDebugName: () => pconn.name);
+      if (conn is pgi.ConnectionImpl) conn.owner = pconn;
 
       // Pass this connection's messages through to the pool messages stream.
       conn.messages.listen((msg) => _messages.add(msg),
@@ -554,7 +574,7 @@ class PoolImpl implements Pool {
     assert(_connections.contains(pconn));
     assert(pconn.state == inUse);
     
-    pg.Connection conn = pconn._connection;
+    final conn = pconn._connection;
     
     // If connection still in transaction or busy with query then destroy.
     // Note this means connections which are returned with an un-committed 

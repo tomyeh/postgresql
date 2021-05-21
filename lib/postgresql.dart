@@ -363,10 +363,11 @@ class PostgresqlException implements Exception {
 
   @override  
   String toString() {
-    final buf = new StringBuffer(serverMessage ?? message);
+    if (serverMessage != null) return serverMessage.toString();
+
+    final buf = new StringBuffer(message);
     if (exception != null) buf..write(' (')..write(exception)..write(')');
-    if (serverMessage == null && connectionName != null)
-      buf..write(' #')..write(connectionName);
+    if (connectionName != null) buf..write(' #')..write(connectionName);
     return buf.toString();
   }
 }

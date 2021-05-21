@@ -1,3 +1,7 @@
+### Version 0.7.8
+
+* Fix #20: remove connections from the pool when detecting server restarted/crashed
+
 ### Version 0.7.7
 
 * Rename `freeConnections` to `limitConnections`
