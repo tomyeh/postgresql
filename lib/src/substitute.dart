@@ -125,7 +125,7 @@ class _Scanner {
 
       // '@@' or '@>' operator and '<@ '
       if (!isIdentifier(_r.peek())) {
-        final String s = new String.fromCharCode(_r.read());
+        final s = new String.fromCharCode(_r.read());
         return new _Token(_TOKEN_TEXT, '@$s');
       }
 
@@ -188,6 +188,7 @@ class _CharReader {
   int _i = 0;
 
   bool hasMore() => _i < _codes.length;
+
   int read() => hasMore() ? _codes[_i++]: 0;
   int peek() => hasMore() ? _codes[_i]: 0;
 

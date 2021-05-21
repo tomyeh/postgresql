@@ -30,7 +30,7 @@ class ClientMessageImpl implements ClientMessage {
   @override
   String toString() => connectionName == null
         ? '$severity $message'
-        : '$connectionName $severity $message';
+        : '$severity $message #$connectionName';
 }
 
 class ServerMessageImpl implements ServerMessage {
@@ -87,5 +87,5 @@ class ServerMessageImpl implements ServerMessage {
   @override
   String toString() => connectionName == null
       ? '$severity $code $message'
-      : '$connectionName $severity $code $message';
+      : '$severity $code $message #$connectionName';
 }

@@ -1,5 +1,13 @@
 part of postgresql.impl;
 
+///A owner of [Connection].
+abstract class ConnectionOwner {
+  /// Destroys the connection.
+  /// It is called if the connection is no longer available.
+  /// For example, server restarts or crashes.
+  void destroy();
+}
+
 class ConnectionImpl implements Connection {
 
   ConnectionImpl._private(
@@ -32,6 +40,8 @@ class ConnectionImpl implements Connection {
   final String? _applicationName;
   final String? _timeZone;
   final TypeConverter _typeConverter;
+  /// The owner of the connection, or null if not available.
+  ConnectionOwner owner;
   final Socket _socket;
   final Buffer _buffer;
   bool _hasConnected = false;
@@ -390,7 +400,7 @@ class ConnectionImpl implements Connection {
 
       case _MSG_ERROR_RESPONSE:
       case _MSG_NOTICE_RESPONSE:
-                                  _readErrorOrNoticeResponse(msgType, length); break;
+          _readErrorOrNoticeResponse(msgType, length); break;
 
       case _MSG_BACKEND_KEY_DATA: _readBackendKeyData(msgType, length); break;
       case _MSG_PARAMETER_STATUS: _readParameterStatus(msgType, length); break;
@@ -421,12 +431,10 @@ class ConnectionImpl implements Connection {
     }
 
     var msg = new ServerMessageImpl(
-                         msgType == _MSG_ERROR_RESPONSE,
-                         map,
-                         debugName);
+        msgType == _MSG_ERROR_RESPONSE, map, debugName);
 
     var ex = new PostgresqlException(msg.message, debugName,
-        serverMessage: msg);
+        serverMessage: msg, exception: msg.code);
     
     if (msgType == _MSG_ERROR_RESPONSE) {
       if (!_hasConnected) {
@@ -439,6 +447,14 @@ class ConnectionImpl implements Connection {
           query.addError(ex);
         } else {
           _messages.add(msg);
+        }
+
+        if (msg.code?.startsWith('57P') ?? false) { //PG stop/restart
+          if (owner != null) owner.destroy();
+          else {
+            _state = closed;
+            _socket.destroy(); 
+          }
         }
       }
     } else {
