@@ -274,15 +274,25 @@ class PoolImpl implements Pool {
   }
 
   //A safe version that catches the exception.
-  Future _establishConnectionSafely()
-  => _establishConnection()
-    .catchError((ex) {
-      _messages.add(new pg.ClientMessage(
-          severity: 'WARNING',
-          message: "Failed to establish connection",
-          exception: ex));
-      return ex; //so caller can handle errors
-    });
+  Future _establishConnectionSafely() async {
+    for (DateTime since;;) //#21: try a while since PG likely recovering
+      try {
+        return _establishConnection();
+      } catch (ex) {
+        final now = DateTime.now();
+        if (since == null) {
+          since = now;
+          _messages.add(new pg.ClientMessage(
+              severity: 'WARNING',
+              message: "Failed to establish connection",
+              exception: ex));
+        } else if (now.difference(since) >= settings.connectionTimeout) {
+          return ex; //so caller can handle errors
+        }
+
+        await Future.delayed(const Duration(seconds: 1));
+      }
+  }
   
   void _heartbeat() {
     if (_state != running) return;
@@ -491,7 +501,7 @@ class PoolImpl implements Pool {
     //Otherwise, it will wait until timeout
 
     for (final r in results)
-      if (r is SocketException) { //unable to connect DB server
+      if (r != null) { //unable to connect DB server
         _processWaitQueue(); //dispatch succeeded conns, if any
 
         final ex = new pg.PostgresqlException(

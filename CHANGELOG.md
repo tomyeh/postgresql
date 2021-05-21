@@ -1,6 +1,7 @@
 ### Version 0.7.8
 
 * Fix #20: remove connections from the pool when detecting server restarted/crashed
+* Fix #21: retry if failed to establish a connection
 
 ### Version 0.7.7
 
