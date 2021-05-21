@@ -1,3 +1,8 @@
+### Version 1.0.1
+
+* Fix #20: remove connections from the pool when detecting server restarted/crashed
+* Fix #21: retry if failed to establish a connection
+
 ### Version 1.0.0
 
 * Migrate to null safety
@@ -6,11 +11,6 @@
 * The `getConnectionName()` and `getDebugName()` arguments are simplifed as `String? connectionName` and `String? debugName`.
 * `Settings.fromMap` and `Settings.toMap` are removed.
 * The `mockSocketConnect` argument is removed.
-
-### Version 0.7.8
-
-* Fix #20: remove connections from the pool when detecting server restarted/crashed
-* Fix #21: retry if failed to establish a connection
 
 ### Version 0.7.7
 
