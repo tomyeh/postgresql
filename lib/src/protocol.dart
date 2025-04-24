@@ -2,9 +2,9 @@ library postgresql.protocol;
 
 import 'dart:collection';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data' show BytesBuilder;
 
+import 'package:charcode/ascii.dart';
 // http://www.postgresql.org/docs/9.2/static/protocol-message-formats.html
 
 //TODO Swap the connection class over to using these.
@@ -87,7 +87,7 @@ class SslRequest implements ProtocolMessage {
 
 class Terminate implements ProtocolMessage {
   @override
-  final int messageCode = 'X'.codeUnitAt(0);
+  final int messageCode = $X;
   @override
   List<int> encode() => new _MessageBuilder(messageCode).build();
 
@@ -118,7 +118,7 @@ class AuthenticationRequest implements ProtocolMessage {
   }
 
   @override
-  final int messageCode = 'R'.codeUnitAt(0);
+  final int messageCode = $R;
   final int authType;
   final List<int>? salt;
 
@@ -144,7 +144,7 @@ class BackendKeyData implements ProtocolMessage {
   BackendKeyData(this.backendPid, this.secretKey);
 
   @override
-  final int messageCode = 'K'.codeUnitAt(0);
+  final int messageCode = $K;
   final int backendPid;
   final int secretKey;
 
@@ -170,7 +170,7 @@ class ParameterStatus implements ProtocolMessage {
   ParameterStatus(this.name, this.value);
 
   @override
-  final int messageCode = 'S'.codeUnitAt(0);
+  final int messageCode = $S;
   final String name;
   final String value;
 
@@ -196,7 +196,7 @@ class Query implements ProtocolMessage {
   Query(this.query);
 
   @override
-  final int messageCode = 'Q'.codeUnitAt(0);
+  final int messageCode = $Q;
   final String query;
 
   @override
@@ -239,7 +239,7 @@ class RowDescription implements ProtocolMessage {
   RowDescription(this.fields);
 
   @override
-  final int messageCode = 'T'.codeUnitAt(0);
+  final int messageCode = $T;
   final List<Field> fields;
 
   @override
@@ -278,7 +278,7 @@ class DataRow implements ProtocolMessage {
     : values = strings.map(utf8.encode).toList(growable: false);
 
   @override
-  final int messageCode = 'D'.codeUnitAt(0);
+  final int messageCode = $D;
   final List<List<int>> values;
 
   @override
@@ -316,7 +316,7 @@ class CommandComplete implements ProtocolMessage {
   CommandComplete.copy(int rows) : this('COPY $rows');
 
   @override
-  final int messageCode = 'C'.codeUnitAt(0);
+  final int messageCode = $C;
   final String tag;
 
   @override
@@ -337,19 +337,19 @@ class ReadyForQuery implements ProtocolMessage {
   ReadyForQuery(this.transactionStatus);
 
   @override
-  final int messageCode = 'Z'.codeUnitAt(0);
+  final int messageCode = $Z;
   final TransactionStatus transactionStatus;
   
-  static final Map _txStatus = {
-    TransactionStatus.none: 'I'.codeUnitAt(0),
-    TransactionStatus.transaction: 'T'.codeUnitAt(0),
-    TransactionStatus.failed: 'E'.codeUnitAt(0)
+  static const _txStatus = {
+    TransactionStatus.none: $I,
+    TransactionStatus.transaction: $T,
+    TransactionStatus.failed: $E
   };
 
   @override
   List<int> encode() {
     var mb = new _MessageBuilder(messageCode)
-      ..addByte(_txStatus[transactionStatus]);
+      ..addByte(_txStatus[transactionStatus]!);
     return mb.build();
   }
 
@@ -407,18 +407,18 @@ abstract class BaseResponse implements ProtocolMessage {
 class ErrorResponse extends BaseResponse implements ProtocolMessage {
   ErrorResponse(Map<String,String> fields) : super(fields);
   @override
-  final int messageCode = 'E'.codeUnitAt(0);
+  final int messageCode = $E;
 }
 
 class NoticeResponse extends BaseResponse implements ProtocolMessage {
   NoticeResponse(Map<String,String> fields) : super(fields);
   @override
-  final int messageCode = 'N'.codeUnitAt(0);
+  final int messageCode = $N;
 }
 
 class EmptyQueryResponse implements ProtocolMessage {
   @override
-  final int messageCode = 'I'.codeUnitAt(0);
+  final int messageCode = $I;
 
   @override
   List<int> encode() => new _MessageBuilder(messageCode).build();
