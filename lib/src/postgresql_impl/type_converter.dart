@@ -223,6 +223,14 @@ class DefaultTypeConverter implements TypeConverter {
       case _JSONB:
         return jsonDecode(value);
 
+      //Not supported it yet -- backward compatibility issue, such as
+      //unable to jsonize and compare...
+      //case _TID:
+      //  assert(value.startsWith('(') && value.endsWith(')'));
+      //  value = value.substring(1, value.length - 1);
+      //  final i = value.indexOf(',');
+      //  return (int.parse(value.substring(0, i)), int.parse(value.substring(i + 1)));
+
       //TODO binary bytea
   
       // Not implemented yet - return a string.

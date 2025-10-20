@@ -121,6 +121,8 @@ const int
   _NUMERIC_ARRAY = 1231,
   _OID = 26,
   _OID_ARRAY = 1028,
+  _TID = 27,
+  _TID_ARRAY = 1010,
   //_POINT = 600,
   _TEXT = 25,
   _TEXT_ARRAY = 1009,
