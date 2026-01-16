@@ -117,8 +117,12 @@ class ConnectionImpl implements Connection {
     var conn = ConnectionImpl._private(socket, settings,
         applicationName, timeZone, typeConverter, debugName);
 
-    socket.listen(conn._readData,
-        onError: conn._handleSocketError,
+    late final StreamSubscription<Uint8List> sub;
+    sub = socket.listen(conn._readData,
+        onError: (ex) {
+          conn._handleSocketError(ex);
+          InvokeUtil.invokeSafely(sub.cancel);
+        },
         onDone: conn._handleSocketClosed);
 
     conn

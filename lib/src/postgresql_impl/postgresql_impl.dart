@@ -9,6 +9,8 @@ import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:sasl_scram/sasl_scram.dart';
 import 'package:charcode/ascii.dart';
+import 'package:rikulo_commons/util.dart';
+
 import 'package:postgresql2/postgresql.dart';
 import 'package:postgresql2/constants.dart';
 import 'package:postgresql2/src/buffer.dart';
