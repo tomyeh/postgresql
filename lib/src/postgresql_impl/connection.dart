@@ -145,12 +145,12 @@ class ConnectionImpl implements Connection {
 
       socket.listen((data) {
         if (data[0] != _S) {
-          socket.destroy();
           completer.completeError(
               PostgresqlException(
                   'This postgresql server is not configured to support SSL '
                   'connections.', null, //FIXME ideally pass the connection pool name through to this exception.
                   exception: peConnectionFailed));
+          InvokeUtil.invokeSafely(socket.destroy);
         } else {
           // TODO add option to only allow valid certs.
           // Note libpq also defaults to ignoring bad certificates, so this is
@@ -159,9 +159,16 @@ class ConnectionImpl implements Connection {
           // is at least logged.
           SecureSocket.secure(socket, onBadCertificate: (cert) => true)
             .then(completer.complete)
-            .catchError(completer.completeError);
+            .catchError((ex, st) {
+              if (!completer.isCompleted) completer.completeError(ex, st);
+              InvokeUtil.invokeSafely(socket.destroy);
+            });
         }
-      });
+      },
+      onError: (ex, st) {
+        if (!completer.isCompleted) completer.completeError(ex, st);
+      },
+      cancelOnError: true);
 
       // Write header, and SSL magic number.
       socket.add(const [0, 0, 0, 8, 4, 210, 22, 47]);
