@@ -1,3 +1,9 @@
+### Version 1.7.2
+
+* Bug fixes from code review: connection-hang scenarios (pending-queries leak on `close`, socket error, PG admin shutdown); auth-phase timeout (`connectionTimeout` now bounds the postgres handshake, not just the socket); `runInTransaction` rollback no longer hides the original exception; `_establishConnectionSafely`'s retry loop actually retries now; `Pool.testConnections` retry condition was inverted; smaller correctness fixes (`Buffer.readUtf8String` maxSize, `_handleSocketError` parameter shadowing, `Settings.toUri` query string, `peConnectionFailed` 40004→4004, `ConnectionDecorator.runInTransaction` double-throw).
+* `Message.message` / `ServerMessage.message`: nullable → non-nullable (impls always set it).
+* Doc/style cleanup (drop `new`, `/** */` → `///`, unify CHANGELOG headers); deleted unused `lib/src/protocol.dart`.
+
 ### Version 1.7.0
 
 * *BREAK CHANGE* The `values` paramter of `Connection.query` and `execute` must be `Map`. For `List` values (by-index), please use `queryByList` and `executeByList` instead.
