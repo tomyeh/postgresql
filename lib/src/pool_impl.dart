@@ -317,7 +317,8 @@ class PoolImpl implements Pool {
   Future _establishConnectionSafely() async {
     for (DateTime? since;;) //#21: try a while since PG likely recovering
       try {
-        return _establishConnection();
+        await _establishConnection();
+        return;
       } catch (ex) {
         final now = DateTime.now();
         if (since == null) {
@@ -478,14 +479,12 @@ class PoolImpl implements Pool {
         
     if (await _testConnection(pconn, timeout - stopwatch.elapsed, () => throw timeoutException()))
       return pconn;
-    
-    if (timeout > stopwatch.elapsed) {
-      throw timeoutException();
-    } else {
-      _destroyConnection(pconn);
-      // Get another connection out of the pool and test again.
-      return _connect(timeout - stopwatch.elapsed);
-    }
+
+    // Test failed. If budget remains, drop this conn and try another.
+    final remaining = timeout - stopwatch.elapsed;
+    if (remaining <= Duration.zero) throw timeoutException();
+    _destroyConnection(pconn);
+    return _connect(remaining);
   }
 
   /// Next available connection.

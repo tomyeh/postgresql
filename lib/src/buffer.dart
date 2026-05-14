@@ -86,9 +86,10 @@ class Buffer {
     // performance critical place that this is used is in reading column headers
     // which are short, and only once per query.
     final bytes = <int>[];
-    int c, i = 0;
+    int c;
     while ((c = readByte()) != 0) {
-      if (i > maxSize) throw _createException('Max size exceeded while reading string: $maxSize.');
+      if (bytes.length >= maxSize)
+        throw _createException('Max size exceeded while reading string: $maxSize.');
       bytes.add(c);
     }
     return utf8.decode(bytes);

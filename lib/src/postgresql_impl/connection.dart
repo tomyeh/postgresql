@@ -128,7 +128,12 @@ class ConnectionImpl implements Connection {
     conn
       .._state = socketConnected
       .._sendStartupMessage();
-    return conn._connected.future;
+    return conn._connected.future.timeout(connectionTimeout, onTimeout: () {
+      conn._destroy();
+      throw PostgresqlException(
+          'Postgresql handshake timed out. Timeout: $connectionTimeout.',
+          conn._debugName, exception: peConnectionTimeout);
+    });
   }
 
   static String _md5s(String s) {
@@ -302,7 +307,7 @@ class ConnectionImpl implements Connection {
 
   void _handleSocketError(error, {bool closed = false}) {
 
-    if (_state == closed) {
+    if (_state == ConnectionState.closed) {
       _messages.add(ClientMessageImpl(
           isError: false,
           severity: 'WARNING',
@@ -321,16 +326,35 @@ class ConnectionImpl implements Connection {
       _connected.completeError(PostgresqlException(msg, debugName,
           exception: error));
     } else {
-      final query = _query;
-      if (query != null) {
-        query.addError(PostgresqlException(msg, debugName,
-            exception: error));
-      } else {
+      final ex = PostgresqlException(msg, debugName, exception: error);
+      if (!_abortPendingQueries(ex))
         _messages.add(ClientMessage(
             isError: true, connectionName: debugName, severity: 'ERROR',
             message: msg, exception: error));
-      }
     }
+  }
+
+  /// Aborts the active query and every queued query with [ex]; closes their
+  /// streams so listeners don't hang. Returns true if anything was aborted.
+  bool _abortPendingQueries(PostgresqlException ex) {
+    bool any = false;
+    if ( _query case final query?) {
+      if (!query._controller.isClosed) {
+        query.addError(ex);
+        query.close();
+      }
+      _query = null;
+      any = true;
+    }
+    while (_sendQueryQueue.isNotEmpty) {
+      final q = _sendQueryQueue.removeFirst();
+      if (!q._controller.isClosed) {
+        q.addError(ex);
+        q.close();
+      }
+      any = true;
+    }
+    return any;
   }
 
   void _handleSocketClosed() {
@@ -483,6 +507,7 @@ class ConnectionImpl implements Connection {
           if (ow != null) ow.destroy();
           else {
             _state = closed;
+            _abortPendingQueries(ex);
             _socket.destroy();
           }
         }
@@ -593,7 +618,10 @@ class ConnectionImpl implements Connection {
       await execute(commit);
       return result;
     } catch (_) {
-      await execute(rollback);
+      try {
+        await execute(rollback);
+      } catch (_) {
+      }
       rethrow;
     } finally {
       assert(_transactionLevel > 0);
@@ -740,18 +768,10 @@ class ConnectionImpl implements Connection {
 
     _state = closed;
 
-    // If a query is in progress then send an error and close the result stream.
-    final query = _query;
-    if (query != null) {
-      var c = query._controller;
-      if (!c.isClosed) {
-        c.addError(PostgresqlException(
-            'Connection closed before query could complete', debugName,
-            exception: peConnectionClosed));
-        c.close();
-        _query = null;
-      }
-    }
+    //Error-out the active query and any queued queries so listeners don't hang.
+    _abortPendingQueries(PostgresqlException(
+        'Connection closed before query could complete', debugName,
+        exception: peConnectionClosed));
 
     try {
       var msg = MessageBuffer();
