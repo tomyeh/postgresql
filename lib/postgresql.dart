@@ -197,7 +197,7 @@ abstract class Message {
   String? get severity;
 
   /// A human readible error message, typically one line.
-  String? get message;
+  String get message;
 
   /// An identifier for the connection. Useful for logging messages in a
   /// connection pool.
@@ -248,7 +248,7 @@ abstract class ServerMessage implements Message {
   
   /// A human readible error message, typically one line.
   @override
-  String? get message;
+  String get message;
 
   /// More detailed information.
   String? get detail;
@@ -378,11 +378,16 @@ class PostgresqlException implements Exception {
 
   @override
   String toString() {
-    if (serverMessage != null) return serverMessage.toString();
-
-    final buf = new StringBuffer(message);
-    if (exception != null) buf..write(' (')..write(exception)..write(')');
-    if (connectionName != null) buf..write(' #')..write(connectionName);
+    final buf = StringBuffer(serverMessage?.toString() ?? message);
+    //When serverMessage is set, `exception` typically carries the SQL code
+    //(already in serverMessage.toString()); skip duplicating it.
+    if (serverMessage == null) {
+      if (exception != null) buf..write(' (')..write(exception)..write(')');
+      if (connectionName != null) buf..write(' #')..write(connectionName);
+    } else if (connectionName != null
+        && serverMessage!.connectionName != connectionName) {
+      buf..write(' #')..write(connectionName);
+    }
     return buf.toString();
   }
 }

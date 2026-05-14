@@ -95,12 +95,12 @@ It helps to reduce number of connections if there are a lot of short-lived conne
  
 * Update broken crypto dependency.
 
-#### Version 0.3.3
+### Version 0.3.3
 
 * Fix #73 Properly encode/decode connection uris. Thanks to Martin Manev.
 * Permit connection without a password. Thanks to Jirka Daněk.
 
-#### Version 0.3.2
+### Version 0.3.2
 
 * Improve handing of datetimes. Thanks to Joe Conway.
 * Remove manually cps transformed async code.
@@ -108,11 +108,11 @@ It helps to reduce number of connections if there are a lot of short-lived conne
 * Fix #67: URI encode db name so spaces can be used in db name. Thanks to Chad Schwendiman.
 * Fix #69: Empty connection pool not establishing connections.
 
-#### Version 0.3.1+1
+### Version 0.3.1+1
 
 * Expose column information via row.getColumns(). Credit to Jesper Håkansson for this change.
 
-#### Version 0.3.0
+### Version 0.3.0
 
 * A new connection pool with more configuration options.
 * Support for json and timestamptz types.

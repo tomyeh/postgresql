@@ -92,7 +92,7 @@ class ConnectionDecorator implements pg.Connection, pgi.ConnectionOwner {
   Future<T> runInTransaction<T>(Future<T> operation(),
                           [pg.Isolation isolation = readCommitted])
     => _isReleased
-        ? throw throw _error('runInTransaction')
+        ? throw _error('runInTransaction')
         : _conn.runInTransaction(operation, isolation);
 
   @override

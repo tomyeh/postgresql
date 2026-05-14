@@ -72,7 +72,7 @@ class SettingsImpl implements Settings {
         host: _host,
         port: _port,
         path: _database,
-        query: requireSsl ? '?sslmode=require' : null).toString();
+        query: requireSsl ? 'sslmode=require' : null).toString();
 
   @override
   String toString()

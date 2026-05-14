@@ -104,13 +104,11 @@ class _Row implements Row {
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
-    var name = invocation.memberName;
     if (invocation.isGetter) {
-      var i = _index[name];
-      if (i != null)
-        return _columnValues[i];
+      final i = _index[invocation.memberName];
+      if (i != null) return _columnValues[i];
     }
-    super.noSuchMethod(invocation);
+    return super.noSuchMethod(invocation);
   }
 
   @override

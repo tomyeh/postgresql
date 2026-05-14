@@ -22,7 +22,7 @@ class ConnectionImpl implements Connection {
       _databaseName = settings.database,
       _typeConverter = typeConverter ?? TypeConverter(),
       _debugName = debugName ?? 'pg',
-      _buffer = Buffer((msg) => PostgresqlException(msg, debugName)),
+      _buffer = Buffer((msg) => PostgresqlException(msg, debugName ?? 'pg')),
       _saslAuthenticator = _SaslAuthenticator(ScramAuthenticator(
         'SCRAM-SHA-256', // Optionally choose hash method from a list provided by the server
         sha256,

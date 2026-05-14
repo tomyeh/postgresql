@@ -34,4 +34,4 @@ const
     peConnectionTimeout = 4001,
     pePoolStopped = 4002,
     peConnectionClosed = 4003,
-    peConnectionFailed = 40004; //miscellaneous connection errors (excluding SQL statement errors)
+    peConnectionFailed = 4004; //miscellaneous connection errors (excluding SQL statement errors)
