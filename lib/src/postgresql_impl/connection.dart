@@ -491,25 +491,22 @@ class ConnectionImpl implements Connection {
 
     if (msgType == _MSG_ERROR_RESPONSE) {
       if (!_hasConnected) {
-          _state = closed;
-          _socket.destroy();
-          _connected.completeError(ex);
+        _state = closed;
+        _socket.destroy();
+        _connected.completeError(ex);
+      } else if (msg.code?.startsWith('57P') ?? false) {
+        //PG stop/restart: connection is doomed. Emit the SQL error once
+        //via the abort and tear down. (Skipping the normal addError path
+        //below so the active query gets one error event, not two.)
+        _abortPendingQueries(ex);
+        _destroy();
+        owner?.destroy();
       } else {
         final query = _query;
         if (query != null) {
           query.addError(ex);
         } else {
           _messages.add(msg);
-        }
-
-        if (msg.code?.startsWith('57P') ?? false) { //PG stop/restart
-          final ow = owner;
-          if (ow != null) ow.destroy();
-          else {
-            _state = closed;
-            _abortPendingQueries(ex);
-            _socket.destroy();
-          }
         }
       }
     } else {
