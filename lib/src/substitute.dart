@@ -50,16 +50,16 @@ String substituteByList(String source, List? values,
 
 String _substitute(String source, _ValueEncoder valueEncoder,
     String encodeValue(value, String? type)) {
-  final buf = new StringBuffer(),
+  final buf = StringBuffer(),
     s = new _Scanner(source),
-    cache = new HashMap();
+    cache = HashMap();
 
   while (s.hasMore()) {
     var t = s.read()!;
     if (t.type == _TOKEN_IDENT) {
       final id = t.value,
         typeName = t.typeName,
-        key = new Pair(id, typeName);
+        key = Pair(id, typeName);
       buf.write(cache[key] ?? (cache[key] = valueEncoder(id, typeName)));
     } else {
       buf.write(t.value);
@@ -70,16 +70,16 @@ String _substitute(String source, _ValueEncoder valueEncoder,
 }
 
 String _nullValueEncoder(value, String? type)
-=> throw new ParseException('Template contains a parameter, but no values were passed.');
+=> throw ParseException('Template contains a parameter, but no values were passed.');
 
 _ValueEncoder _createListValueEncoder(List list,
     String encodeValue(value, String? type))
   => (String identifier, String? type) {
   int i = int.tryParse(identifier) ??
-      (throw new ParseException('Expected integer parameter.'));
+      (throw ParseException('Expected integer parameter.'));
 
   if (i < 0 || i >= list.length)
-    throw new ParseException('Substitution token out of range.');
+    throw ParseException('Substitution token out of range.');
 
   return encodeValue(list[i], type);
 };
@@ -89,7 +89,7 @@ _ValueEncoder _createMapValueEncoder(Map map,
   => (String identifier, String? type) {
   final val = map[identifier];
   if (val == null && !map.containsKey(identifier))
-    throw new ParseException("Substitution token not passed: $identifier.");
+    throw ParseException("Substitution token not passed: $identifier.");
 
   return encodeValue(val, type);
 };
@@ -126,11 +126,11 @@ class _Scanner {
       _r.read();
 
       if (!_r.hasMore())
-        throw new ParseException('Unexpected end of input.');
+        throw ParseException('Unexpected end of input.');
 
       // '@@' or '@>' operator and '<@ '
       if (!isIdentifier(_r.peek())) {
-        final s = new String.fromCharCode(_r.read());
+        final s = String.fromCharCode(_r.read());
         return new _Token(_TOKEN_TEXT, '@$s');
       }
 
@@ -199,7 +199,7 @@ class _CharReader {
 
   String readWhile(bool test(int charCode)) {
     if (!hasMore())
-      throw new ParseException('Unexpected end of input.', _source, _i);
+      throw ParseException('Unexpected end of input.', _source, _i);
 
     int start = _i;
 
@@ -207,6 +207,6 @@ class _CharReader {
       read();
     }
 
-    return new String.fromCharCodes(_codes.sublist(start, _i));
+    return String.fromCharCodes(_codes.sublist(start, _i));
   }
 }

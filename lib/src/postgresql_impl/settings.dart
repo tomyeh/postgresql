@@ -23,7 +23,7 @@ class SettingsImpl implements Settings {
       {bool requireSsl = false})
     : _requireSsl = requireSsl;
   
-  static _error(msg) => new PostgresqlException('Settings: $msg', null);
+  static _error(msg) => PostgresqlException('Settings: $msg', null);
 
   factory SettingsImpl.fromUri(String uri) {
     var u = Uri.parse(uri);
@@ -43,7 +43,7 @@ class SettingsImpl implements Settings {
 
     final requireSsl = u.query.contains('sslmode=require');
 
-    return new SettingsImpl(
+    return SettingsImpl(
         Uri.decodeComponent(u.host),
         u.port == 0 ? Settings.defaultPort : u.port,
         Uri.decodeComponent(userInfo[0]),
@@ -66,7 +66,7 @@ class SettingsImpl implements Settings {
   bool get requireSsl => _requireSsl;
 
   @override
-  String toUri() => new Uri(
+  String toUri() => Uri(
         scheme: 'postgres',
         userInfo: _password == '' ? '$_user': '$_user:$_password',
         host: _host,

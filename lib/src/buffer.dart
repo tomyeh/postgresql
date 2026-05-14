@@ -14,7 +14,7 @@ class Buffer {
   Function _createException;
   
   int _position = 0;
-  final _queue = new Queue<List<int>>();
+  final _queue = Queue<List<int>>();
 
   int _bytesRead = 0;
   int get bytesRead => _bytesRead;
@@ -97,13 +97,13 @@ class Buffer {
 
   void append(List<int> data) {
     if (data.isEmpty)
-      throw new Exception("Attempted to append empty list.");
+      throw Exception("Attempted to append empty list.");
 
     _queue.addLast(data);
   }
 }
 
-//TODO switch to using the new ByteBuilder class.
+//TODO switch to using the ByteBuilder class.
 class MessageBuffer {
   final _buffer = <int>[];
   List<int> get buffer => _buffer;

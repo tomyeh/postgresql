@@ -15,18 +15,18 @@ class DurationFormat {
   final int _threshold;
     
   Duration parse(String s, {onError(String s)?}) {
-    ex() => new FormatException('Cannot parse string as duration: "$s".');
+    ex() => FormatException('Cannot parse string as duration: "$s".');
     
     parsePrefix(s, [int suffixLen = 1])
       => parseInt(s.substring(0, s.length-suffixLen),
           onError: (s) => onError == null ? throw ex() : onError(s)); 
     
-    if (s.endsWith('d')) return new Duration(days: parsePrefix(s));
-    if (s.endsWith('h')) return new Duration(hours: parsePrefix(s));
-    if (s.endsWith('m')) return new Duration(minutes: parsePrefix(s));
-    if (s.endsWith('s')) return new Duration(seconds: parsePrefix(s));
-    if (s.endsWith('ms')) return new Duration(milliseconds: parsePrefix(s, 2));
-    if (s.endsWith('us')) return new Duration(microseconds: parsePrefix(s, 2));
+    if (s.endsWith('d')) return Duration(days: parsePrefix(s));
+    if (s.endsWith('h')) return Duration(hours: parsePrefix(s));
+    if (s.endsWith('m')) return Duration(minutes: parsePrefix(s));
+    if (s.endsWith('s')) return Duration(seconds: parsePrefix(s));
+    if (s.endsWith('ms')) return Duration(milliseconds: parsePrefix(s, 2));
+    if (s.endsWith('us')) return Duration(microseconds: parsePrefix(s, 2));
     
     throw ex();
   }
@@ -59,22 +59,22 @@ class DurationFormat {
   Duration _approximate(Duration d) {
     if (d.inMicroseconds == 0) return d;
     
-    if (d > new Duration(days: _threshold))
-      return new Duration(days: d.inDays);
+    if (d > Duration(days: _threshold))
+      return Duration(days: d.inDays);
     
-    if (d > new Duration(hours: _threshold))
-      return new Duration(hours: d.inHours);
+    if (d > Duration(hours: _threshold))
+      return Duration(hours: d.inHours);
     
-    if (d > new Duration(minutes: _threshold))
-      return new Duration(minutes: d.inMinutes);
+    if (d > Duration(minutes: _threshold))
+      return Duration(minutes: d.inMinutes);
     
-    if (d > new Duration(seconds: _threshold))
-      return new Duration(seconds: d.inSeconds);
+    if (d > Duration(seconds: _threshold))
+      return Duration(seconds: d.inSeconds);
     
-    if (d > new Duration(milliseconds: _threshold))
-      return new Duration(milliseconds: d.inMilliseconds);
+    if (d > Duration(milliseconds: _threshold))
+      return Duration(milliseconds: d.inMilliseconds);
     
-    return new Duration(microseconds: d.inMicroseconds);
+    return Duration(microseconds: d.inMicroseconds);
   }
 
 }

@@ -11,7 +11,7 @@ class ClientMessageImpl implements ClientMessage {
        Object? this.exception,
        this.stackTrace}) {
     if (severity != 'ERROR' && severity != 'WARNING' && severity != 'DEBUG')
-      throw new ArgumentError.notNull('severity');
+      throw ArgumentError.notNull('severity');
   }
 
   @override
@@ -36,7 +36,7 @@ class ClientMessageImpl implements ClientMessage {
 class ServerMessageImpl implements ServerMessage {
 
   ServerMessageImpl(this.isError, Map<String,String> fields, [this.connectionName])
-      : fields = new UnmodifiableMapView<String,String>(fields),
+      : fields = UnmodifiableMapView<String,String>(fields),
         severity = fields['S'],
         code = fields['C'],
         message = fields['M'] ?? '?';

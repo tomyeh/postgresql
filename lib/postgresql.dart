@@ -27,7 +27,7 @@ export 'package:postgresql2/src/substitute.dart'
 /// localtime, then set this to the host's local time zone name. On linux 
 /// systems this can be obtained using:
 /// 
-///     new File('/etc/timezone').readAsStringSync().trim()
+///     File('/etc/timezone').readAsStringSync().trim()
 /// 
 /// The debug name is shown in error messages, this helps tracking down which
 /// connection caused an error.

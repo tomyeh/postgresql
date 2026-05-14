@@ -3,7 +3,7 @@ library postgresql.pool.pool_settings_impl;
 import 'package:postgresql2/pool.dart';
 import 'package:postgresql2/postgresql.dart' as pg;
 
-final PoolSettingsImpl _default = new PoolSettingsImpl(databaseUri: '');
+final PoolSettingsImpl _default = PoolSettingsImpl(databaseUri: '');
 
 class PoolSettingsImpl implements PoolSettings {
   
@@ -56,7 +56,7 @@ class PoolSettingsImpl implements PoolSettings {
         String? applicationName,
         String? timeZone}) {
   
-   return new PoolSettingsImpl(
+   return PoolSettingsImpl(
      databaseUri: databaseUri,
      poolName: poolName,
      minConnections: minConnections ?? _default.minConnections,

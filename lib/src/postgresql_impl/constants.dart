@@ -56,7 +56,7 @@ const int _MSG_ROW_DESCRIPTION = 84; //'T'.charCodeAt(0);
 
 String _itoa(int c) {
   try {
-    return new String.fromCharCodes([c]);
+    return String.fromCharCodes([c]);
   } catch (ex) {
     return 'Invalid';
   }

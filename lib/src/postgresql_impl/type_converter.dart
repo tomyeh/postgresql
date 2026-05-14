@@ -7,7 +7,7 @@ const escapes = const {
 };
 /// Characters that will be escapes.
 const escapePattern = r"'\r\n\\\t\b\f\u0000"; //detect unsupported null
-final _escapeRegExp = new RegExp("[$escapePattern]");
+final _escapeRegExp = RegExp("[$escapePattern]");
 
 class RawTypeConverter extends DefaultTypeConverter {
   @override
@@ -41,7 +41,7 @@ class DefaultTypeConverter implements TypeConverter {
   => decodeValue(value, pgType, connectionName: connectionName);
 
   PostgresqlException _error(String msg, String? connectionName) {
-    return new PostgresqlException(msg, connectionName);
+    return PostgresqlException(msg, connectionName);
   }
   
   String encodeValue(value, String? type, {String? connectionName}) {
@@ -136,7 +136,7 @@ class DefaultTypeConverter implements TypeConverter {
   }
   
   String encodeArray(Iterable value, {String? pgType}) {
-    final buf = new StringBuffer('array[');
+    final buf = StringBuffer('array[');
     for (final v in value) {
       if (buf.length > 6) buf.write(',');
       buf.write(encodeValueDefault(v));
@@ -325,7 +325,7 @@ class DefaultTypeConverter implements TypeConverter {
           for (;;) {
             final cc = value.codeUnitAt(++i);
             if (cc == $quot) {
-              result.add(new String.fromCharCodes(buf));
+              result.add(String.fromCharCodes(buf));
               ++i;
               assert(i >= len || value.codeUnitAt(i) == $comma);
               break;
