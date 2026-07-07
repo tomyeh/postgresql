@@ -556,11 +556,9 @@ class ConnectionImpl implements Connection {
   }
 
   @override
-  Stream<Row> queryByList(String sql, List? values) {
+  Stream<Row> queryByList(String sql, List values) {
     try {
-      if (values != null)
-        sql = substituteByList(sql, values, _typeConverter.encode);
-
+      sql = substituteByList(sql, values, _typeConverter.encode);
       return _enqueueQuery(sql).stream;
     } catch (ex, st) {
       return Stream.error(ex, st);
@@ -578,9 +576,8 @@ class ConnectionImpl implements Connection {
   }
 
   @override
-  Future<int> executeByList(String sql, List? values) async {
-    if (values != null)
-      sql = substituteByList(sql, values, _typeConverter.encode);
+  Future<int> executeByList(String sql, List values) async {
+    sql = substituteByList(sql, values, _typeConverter.encode);
 
     var query = _enqueueQuery(sql);
     await query.stream.isEmpty;

@@ -69,7 +69,7 @@ class ConnectionDecorator implements pg.Connection, pgi.ConnectionOwner {
     return _conn.query(sql, values);
   }
   @override
-  Stream<pg.Row> queryByList(String sql, List? values) {
+  Stream<pg.Row> queryByList(String sql, List values) {
     if (_isReleased) throw _error('query');
     _pool.settings.onQuery?.call(sql, values, _stats);
     return _conn.queryByList(sql, values);
@@ -82,7 +82,7 @@ class ConnectionDecorator implements pg.Connection, pgi.ConnectionOwner {
     return _conn.execute(sql, values);
   }
   @override
-  Future<int> executeByList(String sql, List? values) {
+  Future<int> executeByList(String sql, List values) {
     if (_isReleased) throw _error('execute');
     _pool.settings.onExecute?.call(sql, values, _stats);
     return _conn.executeByList(sql, values);

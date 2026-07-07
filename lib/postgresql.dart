@@ -91,12 +91,13 @@ abstract class Connection {
   /// Queue a sql query to be run, returning a [Stream] of [Row]s.
   /// The results can be fetched from the [Row]s by index.
   /// Identical to [query] apart from the [values] must be a list.
-  /// 
+  /// If there are no values to substitute, use [query] instead.
+  ///
   /// For example:
-  ///  
+  ///
   ///     conn.query("insert into foo_table values (@0, @1);", [a, b])
   ///        .then(...);
-  Stream<Row> queryByList(String sql, List? values);
+  Stream<Row> queryByList(String sql, List values);
 
   /// Queues a command for execution, and when done, returns the number of rows
   /// affected by the sql command. Indentical to [query] apart from the
@@ -106,7 +107,8 @@ abstract class Connection {
   /// Queues a command for execution, and when done, returns the number of rows
   /// affected by the sql command. Indentical to [queryByList] apart from the
   /// information returned.
-  Future<int> executeByList(String sql, List? values);
+  /// If there are no values to substitute, use [execute] instead.
+  Future<int> executeByList(String sql, List values);
 
   /// Allow multiple queries to be run in a transaction. The user must wait for
   /// runInTransaction() to complete before making any further queries.
