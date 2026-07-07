@@ -50,7 +50,7 @@ class ConnectionDecorator implements pg.Connection, pgi.ConnectionOwner {
   }
   @override
   void destroy() {
-    if (_release()) _pool._destroyConnection(_pconn);
+    if (_release()) _pconn.destroy();
   }
 
   ///Returns false if it was released before.
@@ -169,6 +169,8 @@ class PooledConnectionImpl implements PooledConnection, pgi.ConnectionOwner {
   @override
   void destroy() {
     _pool._destroyConnection(this);
+    //replenish and serve waiters (mirrors _releaseConnection's destroy paths)
+    _pool._establishConnectionSafely().then(_pool._processWaitQueue);
   }
 
   @override
@@ -244,18 +246,24 @@ class PoolImpl implements Pool {
 
     _state = starting;
 
-    // Start connections in parallel.
-    var futures = Iterable.generate(settings.minConnections,
-        (i) => _establishConnection());
-      //don't call ...Safely so exception will be sent to caller
+    try {
+      // Start connections in parallel.
+      var futures = Iterable.generate(settings.minConnections,
+          (i) => _establishConnection());
+        //don't call ...Safely so exception will be sent to caller
 
-    await Future.wait(futures)
-      .timeout(settings.startTimeout, onTimeout: onTimeout);
+      await Future.wait(futures)
+        .timeout(settings.startTimeout, onTimeout: onTimeout);
 
-    // If something bad happened and there are not enough connecitons.
-    while (_connections.length < settings.minConnections) {
-      await _establishConnection()
-        .timeout(settings.startTimeout - stopwatch.elapsed, onTimeout: onTimeout);
+      // If something bad happened and there are not enough connecitons.
+      while (_connections.length < settings.minConnections) {
+        await _establishConnection()
+          .timeout(settings.startTimeout - stopwatch.elapsed, onTimeout: onTimeout);
+      }
+    } catch (_) {
+      _state = startFailed; //not stuck in `starting` (unstartable, unusable)
+      _forEachConnection(_destroyConnection); //nothing else reclaims them
+      rethrow;
     }
 
     _state = running;
@@ -298,6 +306,11 @@ class PoolImpl implements Pool {
         timeZone: settings.timeZone,
         typeConverter: typeConverter,
         debugName: pconn.name);
+      if (!_connections.contains(pconn)) {
+        //destroyed while connecting (stop timeout, all-leaked restart)
+        conn.close();
+        return;
+      }
       if (conn is pgi.ConnectionImpl) conn.owner = pconn;
 
       // Pass this connection's messages through to the pool messages stream.
@@ -477,13 +490,14 @@ class PoolImpl implements Pool {
 
     pconn._state = testing;
         
-    if (await _testConnection(pconn, timeout - stopwatch.elapsed, () => throw timeoutException()))
+    if (await _testConnection(pconn, timeout - stopwatch.elapsed))
       return pconn;
 
-    // Test failed. If budget remains, drop this conn and try another.
+    // Test failed. Drop this conn; if budget remains, try another.
+    _destroyConnection(pconn);
+      //before the throw — or the pconn is stranded in `testing` forever
     final remaining = timeout - stopwatch.elapsed;
     if (remaining <= Duration.zero) throw timeoutException();
-    _destroyConnection(pconn);
     return _connect(remaining);
   }
 
@@ -588,10 +602,10 @@ class PoolImpl implements Pool {
   Timer? _tmProcessAgain;
 
   /// Perfom a query to check the state of the connection.
+  /// A timeout is returned as `false` (not thrown).
   Future<bool> _testConnection(
       PooledConnectionImpl pconn,
-      Duration timeout, 
-      Function onTimeout) async {
+      Duration timeout) async {
     bool ok;
     try {
       var row = await pconn._connection!.query('select true')
@@ -691,6 +705,10 @@ class PoolImpl implements Pool {
     _state = stopping;
 
     _heartbeatTimer?.cancel();
+    if (_tmProcessAgain case final tm?) {
+      _tmProcessAgain = null;
+      tm.cancel();
+    }
   
     // Send error messages to connections in wait queue.
     final ex = pg.PostgresqlException(

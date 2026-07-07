@@ -117,6 +117,11 @@ abstract class Connection {
   /// This will never throw an exception.
   void close();
 
+  /// Destroys the connection. Unlike [close], a pooled connection is
+  /// physically closed, so session state (e.g. a session-level `SET`)
+  /// won't leak to the next borrower. Safe to call multiple times.
+  void destroy();
+
   /// The server can send errors and notices, or the network can cause errors
   /// while the connection is not being used to make a query. These can be 
   /// caught by listening to the messages stream. See [ClientMessage] and 

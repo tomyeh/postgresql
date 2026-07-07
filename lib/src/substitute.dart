@@ -152,37 +152,94 @@ class _Scanner {
   }
 
   String _readText() {
-    int? esc;
+    final r = _r;
+    final start = r.index;
+    int? esc; //quote char when inside '...' or "..."
     bool backslash = false;
-    late int ndollar;
-    return _r.readWhile((int c) {
+
+    while (r.hasMore()) {
+      final c = r.peek();
+
       if (backslash) {
         backslash = false;
+
+      } else if (esc != null) {
+        if (c == $backslash) backslash = true;
+        else if (c == esc) esc = null;
+
+      } else if (c == $at) {
+        break; //found
+
       } else if (c == $backslash) {
         backslash = true;
 
-      } else if (esc == null) {
-        switch (c) {
-          case $at:
-            return false; //found!
-          case $single_quote:
-          case $quot:
-          case $dollar:
-            esc = c;
-            if (c == $dollar)
-              ndollar = 3; //$tag$string$tag$
-            break;
-        }
+      } else if (c == $single_quote || c == $quot) {
+        esc = c;
 
-      } else if (c == esc) {
-        if (c != $dollar || --ndollar == 0)
-          esc = null;
+      } else if (c == $dollar) { //dollar quote? (`$tag$...$tag$`; not `$1`)
+        r.read();
+        final tag = _readDollarTag();
+        if (tag != null) _skipDollarQuoted(tag);
+        continue;
+
+      } else if (c == $dash) { //`--` line comment?
+        r.read();
+        if (r.peek() == $dash) r.skipPast('\n');
+        continue;
+
+      } else if (c == $slash) { //`/*...*/` block comment (nestable)?
+        r.read();
+        if (r.peek() == $asterisk) _skipBlockComment();
+        continue;
       }
 
-      return true;
-    });
+      r.read();
+    }
+    return r.substringFrom(start);
+  }
+
+  /// Reads `tag$` after the opening `$`; null if not a dollar quote (e.g. `$1`).
+  String? _readDollarTag() {
+    final r = _r;
+    final start = r.index;
+    for (bool first = true;; first = false) {
+      if (!r.hasMore()) return null;
+      final c = r.peek();
+      if (c == $dollar) {
+        final tag = r.substringFrom(start);
+        r.read();
+        return tag;
+      }
+      if (first ? !_isTagStart(c) : !_isTagChar(c)) return null;
+      r.read();
+    }
+  }
+
+  /// Consumes through the matching `$tag$` terminator.
+  void _skipDollarQuoted(String tag) => _r.skipPast('\$$tag\$');
+
+  void _skipBlockComment() {
+    final r = _r;
+    r.read(); //the '*'
+    for (int depth = 1; r.hasMore();) {
+      final c = r.read();
+      if (c == $asterisk && r.peek() == $slash) {
+        r.read();
+        if (--depth == 0) return;
+      } else if (c == $slash && r.peek() == $asterisk) {
+        r.read();
+        ++depth;
+      }
+    }
   }
 }
+
+//PG's lexer treats any high-bit char as a letter in dollar-quote tags
+bool _isTagStart(int c)
+  => (c >= $a && c <= $z)
+  || (c >= $A && c <= $Z)
+  || c == $underscore || c >= 0x80;
+bool _isTagChar(int c) => _isTagStart(c) || isDigit(c);
 
 class _CharReader {
   _CharReader(String source)
@@ -194,8 +251,18 @@ class _CharReader {
 
   bool hasMore() => _i < _codes.length;
 
+  int get index => _i;
+
   int read() => hasMore() ? _codes[_i++]: 0;
   int peek() => hasMore() ? _codes[_i]: 0;
+
+  String substringFrom(int start) => _source.substring(start, _i);
+
+  /// Advances past the first occurrence of [s], or to the end if absent.
+  void skipPast(String s) {
+    final i = _source.indexOf(s, _i);
+    _i = i < 0 ? _codes.length: i + s.length;
+  }
 
   String readWhile(bool test(int charCode)) {
     if (!hasMore())

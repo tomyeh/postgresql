@@ -1,3 +1,12 @@
+### Version 1.8.0
+
+* `Connection.destroy()` added — physically closes a pooled connection, so session state (e.g. a `SET`) won't leak to the next borrower. (Breaking for `Connection` implementers — hence the minor bump.)
+* Pool fixes: an external destroy re-establishes a connection and serves waiters (was: neither); a failed connection test no longer strands the connection in `testing` when the budget is exhausted; a failed `start()` ends in `startFailed` and destroys what it established (was: stuck in `starting`, sockets leaked); socket leak when a `connecting` entry is destroyed; `stop()` cancels the retry timer; dropped `_testConnection`'s unused `onTimeout` parameter.
+* Substitution: `@params` in `--` and nestable `/*...*/` comments are no longer substituted; dollar quotes match the exact `$tag$` terminator (was: count four `$`s), incl. non-ASCII tags.
+* Type converter: arrays with quoted elements (e.g. `timestamp[]`, `money[]`) decode correctly; `json[]` elements decode to values, consistent with scalar `json` (was: raw JSON source strings, and threw on NULL elements); typed `BigInt` no longer crashes.
+* md5 auth hashes UTF-8 bytes (was UTF-16 code units — wrong for non-ASCII credentials).
+* `close()` bounds the terminate-flush wait (5s), swallows its error, and destroys the socket even when sending Terminate throws — no leak nor unhandled async error on a dead peer.
+
 ### Version 1.7.2
 
 * Bug fixes from code review: connection-hang scenarios (pending-queries leak on `close`, socket error, PG admin shutdown); auth-phase timeout (`connectionTimeout` now bounds the postgres handshake, not just the socket); `runInTransaction` rollback no longer hides the original exception; `_establishConnectionSafely`'s retry loop actually retries now; `Pool.testConnections` retry condition was inverted; smaller correctness fixes (`Buffer.readUtf8String` maxSize, `_handleSocketError` parameter shadowing, `Settings.toUri` query string, `peConnectionFailed` 40004→4004, `ConnectionDecorator.runInTransaction` double-throw).

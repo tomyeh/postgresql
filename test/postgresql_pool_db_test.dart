@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:test/test.dart';
 //import 'package:matcher/matcher.dart';
 import 'package:postgresql2/pool.dart';
@@ -43,7 +44,9 @@ main() {
   var queryPeriod = secs(2);
   var stopAfter = secs(120);
   
-  var pool = new Pool('postgresql://testdb:password@localhost:5433/testdb',
+  var pool = new Pool(
+       Platform.environment['PG_URI']
+           ?? 'postgresql://testdb:password@localhost:5432/testdb',
        connectionTimeout: secs(15),
        leakDetectionThreshold: secs(3),
        restartIfAllConnectionsLeaked: true)

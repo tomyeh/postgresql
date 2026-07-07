@@ -57,15 +57,15 @@ class DefaultTypeConverter implements TypeConverter {
       case 'integer': case 'smallint':
       case 'bigint': case 'serial':
       case 'bigserial': case 'int':
-        if (value is int || value is BigInt)
-          return encodeNumber(value);
+        if (value is int) return encodeNumber(value);
+        if (value is BigInt) return value.toString();
         break;
 
       case 'real': case 'double':
       case 'num': case 'number':
       case 'numeric': case 'decimal': //Work only for smaller precision
-        if (value is num || value is BigInt)
-          return encodeNumber(value);
+        if (value is num) return encodeNumber(value);
+        if (value is BigInt) return value.toString();
         break;
 
       case 'boolean': case 'bool':
@@ -317,43 +317,43 @@ class DefaultTypeConverter implements TypeConverter {
     if (len <= 0) return [];
     value = value.substring(1, len + 1);
 
-    if (const {_TEXT, _CHAR, _VARCHAR, _NAME}.contains(pgType)) {
-      final result = [];
-      for (int i = 0; i < len; ++i) {
-        if (value.codeUnitAt(i) == $quot) {
-          final buf = <int>[];
-          for (;;) {
-            final cc = value.codeUnitAt(++i);
-            if (cc == $quot) {
-              result.add(String.fromCharCodes(buf));
-              ++i;
-              assert(i >= len || value.codeUnitAt(i) == $comma);
-              break;
-            }
-            if (cc == $backslash) buf.add(value.codeUnitAt(++i));
-            else buf.add(cc);
+    return _parseArray(value, len, pgType, connectionName);
+      //[decodeValue] is identity for text types, jsonDecode for json
+      //(a json null arrives quoted ("null") → decodes to null)
+  }
+
+  /// Splits array content ([value]) into elements, respecting PG's
+  /// quoting and `\` escapes, and decodes each via [decodeValue].
+  /// Unquoted `NULL` → null; quoted `"NULL"` is a literal.
+  List _parseArray(String value, int len, int pgType, String? connectionName) {
+    final result = [];
+    for (int i = 0; i < len; ++i) {
+      if (value.codeUnitAt(i) == $quot) {
+        final buf = <int>[];
+        for (;;) {
+          final cc = value.codeUnitAt(++i);
+          if (cc == $quot) {
+            result.add(decodeValue(String.fromCharCodes(buf), pgType,
+                connectionName: connectionName));
+            ++i;
+            assert(i >= len || value.codeUnitAt(i) == $comma);
+            break;
           }
-        } else { //not quoted
-          for (int j = i;; ++j) {
-            if (j >= len || value.codeUnitAt(j) == $comma) {
-              final v = value.substring(i, j);
-              result.add(v == 'NULL' ? null: v);
-              i = j;
-              break;
-            }
+          if (cc == $backslash) buf.add(value.codeUnitAt(++i));
+          else buf.add(cc);
+        }
+      } else { //not quoted
+        for (int j = i;; ++j) {
+          if (j >= len || value.codeUnitAt(j) == $comma) {
+            final v = value.substring(i, j);
+            result.add(v == 'NULL' ? null:
+                decodeValue(v, pgType, connectionName: connectionName));
+            i = j;
+            break;
           }
         }
       }
-      return result;
     }
-
-    if (const {_JSON, _JSONB}.contains(pgType))
-      return jsonDecode('[$value]');
-
-    final result = [];
-    for (final v in value.split(','))
-      result.add(v == 'NULL' ? null:
-          decodeValue(v, pgType, connectionName: connectionName));
     return result;
   }
 }

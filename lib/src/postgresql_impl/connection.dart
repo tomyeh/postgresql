@@ -137,7 +137,7 @@ class ConnectionImpl implements Connection {
   }
 
   static String _md5s(String s) {
-    var digest = md5.convert(s.codeUnits.toList());
+    var digest = md5.convert(utf8.encode(s)); //UTF-8, as libpq hashes it
     return hex.encode(digest.bytes);
   }
 
@@ -758,6 +758,9 @@ class ConnectionImpl implements Connection {
   }
 
   @override
+  void destroy() => close(); //non-pooled: close is already physical
+
+  @override
   void close() {
 
     if (_state == closed)
@@ -776,8 +779,12 @@ class ConnectionImpl implements Connection {
       msg.addInt32(0);
       msg.setLength();
       _socket.add(msg.buffer);
-      _socket.flush().whenComplete(_destroy);
-      // Wait for socket flush to succeed or fail before closing the connection.
+      //flush before destroy, bounded (a dead peer never flushes);
+      //errors swallowed (nobody listens) — _destroy runs either way
+      _socket.flush()
+        .timeout(const Duration(seconds: 5))
+        .catchError((_) {})
+        .whenComplete(_destroy);
     } catch (e, st) {
       _messages.add(ClientMessageImpl(
           severity: 'WARNING',
@@ -786,6 +793,7 @@ class ConnectionImpl implements Connection {
           connectionName: debugName,
           exception: e,
           stackTrace: st));
+      _destroy(); //sync add/flush throw: nothing else will run it
     }
   }
 

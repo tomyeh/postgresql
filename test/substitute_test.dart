@@ -88,6 +88,61 @@ void main() {
       var result = substituteByList('@0 @1', ['foo', 42], tc.encodeValue);
       expect(result, equals(" E'foo'  42"));
     });
+  });
+
+  group('Comments', () {
+    final enc = (new TypeConverter() as DefaultTypeConverter).encodeValue;
+
+    test('line comment', () {
+      expect(substitute('select @x -- a@b\n@x', {'x': 1}, enc),
+          equals('select 1 -- a@b\n1'));
+      //@y inside a comment must not be looked up (not in the map)
+      expect(substitute('@x --@y', {'x': 1}, enc), equals('1 --@y'));
+    });
+
+    test('block comment, nested', () {
+      expect(substitute('/* @y */@x', {'x': 1}, enc), equals('/* @y */1'));
+      expect(substitute('/* /* @y */ @z */@x', {'x': 1}, enc),
+          equals('/* /* @y */ @z */1'));
+    });
+
+    test('not comments', () {
+      expect(substitute('a-b@x', {'x': 1}, enc), equals('a-b1'));
+      expect(substitute('a/b @x', {'x': 1}, enc), equals('a/b 1'));
+    });
+  });
+
+  group('Dollar quotes', () {
+    final enc = (new TypeConverter() as DefaultTypeConverter).encodeValue;
+
+    test('untagged', () {
+      expect(substitute(r'$$ @y $$@x', {'x': 1}, enc), equals(r'$$ @y $$1'));
+      //a bare $ in the body must not close the quote
+      expect(substitute(r'$$ $5 @y $$@x', {'x': 1}, enc),
+          equals(r'$$ $5 @y $$1'));
+    });
+
+    test('tagged', () {
+      expect(substitute(r'$t$@y$t$@x', {'x': 1}, enc), equals(r'$t$@y$t$1'));
+      //near-miss terminator ($ta$) must not close $tag$
+      expect(substitute(r'$tag$a$ta$@y$tag$@x', {'x': 1}, enc),
+          equals(r'$tag$a$ta$@y$tag$1'));
+    });
+
+    test('non-ASCII tag', () {
+      expect(substitute(r'$déjà$ @y $déjà$@x', {'x': 1}, enc),
+          equals(r'$déjà$ @y $déjà$1'));
+    });
+
+    test('not dollar quotes', () {
+      //$1 is a positional param, not a tag (digit can't start a tag)
+      expect(substitute(r'select $1, @x', {'x': 1}, enc),
+          equals(r'select $1, 1'));
+    });
+
+    test('unterminated', () {
+      expect(substitute(r'$$ @y', {'x': 1}, enc), equals(r'$$ @y'));
+    });
 
 //    test('Substitute 13', () {
 //      var result = substitute('@apos', {'apos': "'"});

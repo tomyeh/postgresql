@@ -142,6 +142,108 @@ main() {
   });
 
   
-  //TODO test array
+  test('encode BigInt', () {
+    var tc = new TypeConverter();
+    expect(tc.encode(BigInt.parse('9876543210123456789'), null),
+        equals('9876543210123456789'));
+    expect(tc.encode(BigInt.parse('-9876543210123456789'), 'bigint'),
+        equals('-9876543210123456789'));
+    expect(tc.encode(BigInt.two, 'numeric'), equals('2'));
+  });
+
+  group('decode array (_parseArray)', () {
+    //pg type array oids (see constants.dart)
+    const text = 1009, varchar = 1015, int4 = 1007, int8 = 1016,
+      float8 = 1022, numeric = 1231, bool_ = 1000, date = 1182,
+      timestamp = 1115, timestampz = 1185, json = 199, jsonb = 3807,
+      money = 791;
+    var tc = new TypeConverter();
+
+    test('empty and single', () {
+      expect(tc.decode('{}', text), equals([]));
+      expect(tc.decode('{a}', text), equals(['a']));
+      expect(tc.decode('{"a"}', text), equals(['a']));
+      expect(tc.decode('{5}', int4), equals([5]));
+    });
+
+    test('unquoted text elements', () {
+      expect(tc.decode('{a,b,c}', text), equals(['a', 'b', 'c']));
+    });
+
+    test('NULL vs quoted "NULL" vs empty string', () {
+      //unquoted NULL is SQL null; quoted is the literal 4-char string
+      expect(tc.decode('{NULL}', text), equals([null]));
+      expect(tc.decode('{"NULL"}', text), equals(['NULL']));
+      expect(tc.decode('{""}', text), equals(['']));
+      expect(tc.decode('{NULL,x,NULL}', text), equals([null, 'x', null]));
+    });
+
+    test('quoting forced by special chars', () {
+      //PG quotes any element containing space, comma, brace, quote or backslash
+      expect(tc.decode('{"a b"}', text), equals(['a b']));
+      expect(tc.decode('{"a,b"}', text), equals(['a,b']));
+      expect(tc.decode('{"{x}"}', text), equals(['{x}']));
+      expect(tc.decode('{"a{b}c,d e"}', text), equals(['a{b}c,d e']));
+    });
+
+    test('backslash escapes inside quotes', () {
+      expect(tc.decode(r'{"a\"b"}', text), equals(['a"b']));   //escaped quote
+      expect(tc.decode(r'{"a\\b"}', text), equals([r'a\b']));  //escaped backslash
+      expect(tc.decode(r'{"\\"}', text), equals([r'\']));      //lone backslash
+      expect(tc.decode(r'{"a\\","b"}', text), equals([r'a\', 'b'])); //escape then delim
+    });
+
+    test('mixed quoted / unquoted / null sequence', () {
+      expect(tc.decode(r'{plain,"qu\"ot","a,b",NULL,"NULL",""}', text),
+          equals(['plain', 'qu"ot', 'a,b', null, 'NULL', '']));
+      //quoted and unquoted alternating, ensuring delimiter handling both ways
+      expect(tc.decode(r'{"x",y,"z"}', text), equals(['x', 'y', 'z']));
+    });
+
+    test('varchar[] behaves like text[]', () {
+      expect(tc.decode(r'{"a b",c}', varchar), equals(['a b', 'c']));
+    });
+
+    test('integer arrays (int4/int8)', () {
+      expect(tc.decode('{1,-2,3,NULL}', int4), equals([1, -2, 3, null]));
+      expect(tc.decode('{9223372036854775807,-1}', int8),
+          equals([9223372036854775807, -1]));
+    });
+
+    test('float and numeric arrays', () {
+      expect(tc.decode('{1.5,-2.5,0}', float8), equals([1.5, -2.5, 0.0]));
+      expect(tc.decode('{3.14,NULL,2}', numeric), equals([3.14, null, 2.0]));
+    });
+
+    test('bool array', () {
+      expect(tc.decode('{t,f,NULL,t}', bool_), equals([true, false, null, true]));
+    });
+
+    test('date / timestamp / timestamptz arrays', () {
+      expect(tc.decode('{2026-07-07,NULL}', date),
+          equals([DateTime.parse('2026-07-07T00:00:00Z').toLocal(), null]));
+      //timestamps come back quoted (contain a space)
+      expect(tc.decode('{"2026-07-07 06:42:35"}', timestamp),
+          equals([DateTime.parse('2026-07-07T06:42:35Z').toLocal()]));
+      expect(tc.decode('{"2026-07-07 06:42:35+00",NULL}', timestampz),
+          equals([DateTime.parse('2026-07-07 06:42:35+00').toLocal(), null]));
+    });
+
+    test('money[] left as raw strings', () {
+      expect(tc.decode(r'{"$1,000.00","$0.50"}', money),
+          equals([r'$1,000.00', r'$0.50']));
+    });
+
+    test('json[] / jsonb[] elements decode to values', () {
+      //objects -> Map, json string -> its content, numbers/bools -> values,
+      //quoted "null" is a json null, unquoted NULL is SQL null
+      expect(tc.decode(r'{"{\"a\": 1}","\"abc\"",5,true,NULL,"null"}', json),
+          equals([{'a': 1}, 'abc', 5, true, null, null]));
+      expect(tc.decode(r'{"[1, 2]","{\"k\": [true, null]}"}', jsonb),
+          equals([[1, 2], {'k': [true, null]}]));
+      expect(tc.decode('{}', json), equals([]));
+    });
+  });
+
   //TODO test bytea
 }
