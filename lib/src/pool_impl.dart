@@ -168,9 +168,9 @@ class PooledConnectionImpl implements PooledConnection, pgi.ConnectionOwner {
 
   @override
   void destroy() {
-    _pool._destroyConnection(this);
-    //replenish and serve waiters (mirrors _releaseConnection's destroy paths)
-    _pool._establishConnectionSafely().then(_pool._processWaitQueue);
+    if (_pool._destroyConnection(this)) //false: destroyed before
+      //replenish and serve waiters (mirrors _releaseConnection's destroy paths)
+      _pool._establishConnectionSafely().then(_pool._processWaitQueue);
   }
 
   @override
@@ -360,8 +360,13 @@ class PoolImpl implements Pool {
           && --i >= 0;) //reverse since it might be removed
         _checkIdleTimeout(_connections[i], i);
 
-      // This shouldn't be necessary, but should help fault tolerance. 
+      // This shouldn't be necessary, but should help fault tolerance.
       _processWaitQueue();
+
+      //replenish to [minConnections] (e.g. destroyed during a DB outage),
+      //so the first request after recovery won't pay the establish latency
+      for (int i = _connections.length; i < settings.minConnections; ++i)
+        _establishConnectionSafely();
 
       _checkIfAllConnectionsLeaked();
 
@@ -677,7 +682,8 @@ class PoolImpl implements Pool {
   bool _isExpired(DateTime time, Duration timeout) 
     => DateTime.now().difference(time) > timeout;
   
-  void _destroyConnection(PooledConnectionImpl pconn, [int? i]) {
+  /// Returns false if [pconn] was destroyed before (no longer pooled).
+  bool _destroyConnection(PooledConnectionImpl pconn, [int? i]) {
     pconn._connection?.close();
     pconn._state = connClosed;
 
@@ -688,9 +694,11 @@ class PoolImpl implements Pool {
       for (int i = _connections.length; --i >= 0;)
         if (pconn == _connections[i]) {
           _connections.removeAt(i);
-          break;
+          return true;
         }
+      return false;
     }
+    return true;
   }
 
   @override

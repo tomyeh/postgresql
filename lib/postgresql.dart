@@ -120,6 +120,10 @@ abstract class Connection {
   /// Destroys the connection. Unlike [close], a pooled connection is
   /// physically closed, so session state (e.g. a session-level `SET`)
   /// won't leak to the next borrower. Safe to call multiple times.
+  ///
+  /// Note: after [close], `destroy()` on a pooled connection is a no-op —
+  /// the connection was already returned to the pool. Call `destroy()`
+  /// *instead of* [close] when the session state must not be reused.
   void destroy();
 
   /// The server can send errors and notices, or the network can cause errors

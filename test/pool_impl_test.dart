@@ -68,12 +68,14 @@ class _Factory {
 PoolImpl _pool(_Factory f,
         {int min = 2, int max = 2, bool testConnections = false,
          Duration connectionTimeout = const Duration(seconds: 5),
-         Duration startTimeout = const Duration(seconds: 5)}) =>
+         Duration startTimeout = const Duration(seconds: 5),
+         Duration? leakDetectionThreshold}) =>
     PoolImpl(
         PoolSettingsImpl(databaseUri: '',
             minConnections: min, maxConnections: max,
             testConnections: testConnections,
-            connectionTimeout: connectionTimeout, startTimeout: startTimeout),
+            connectionTimeout: connectionTimeout, startTimeout: startTimeout,
+            leakDetectionThreshold: leakDetectionThreshold),
         null, f.connect);
 
 void main() {
@@ -146,6 +148,94 @@ void main() {
         onTimeout: () => throw StateError('waiter stranded by destroy()'));
     expect(c2, isNotNull);
     c2.close();
+    await pool.stop();
+  });
+
+  test('double destroy() of the same pooled connection replenishes once',
+      () async {
+    final f = _Factory();
+    final pool = _pool(f, min: 2, max: 5);
+    await pool.start();
+    final pc = pool.connections.first;
+    pc.destroy();
+    pc.destroy(); //no-op: already destroyed
+    await pumpEventQueue();
+    expect(f.created, 3, reason: 'only one replacement established');
+    expect(pool.pooledConnectionCount, 2);
+    await pool.stop();
+  });
+
+  test('close() then destroy() is a no-op (already returned to pool)',
+      () async {
+    final f = _Factory();
+    final pool = _pool(f, min: 1, max: 1);
+    await pool.start();
+    final c = await pool.connect();
+    c.close();
+    await pumpEventQueue();
+    c.destroy(); //released before: must not destroy nor replenish
+    await pumpEventQueue();
+    expect(f.created, 1, reason: 'no replacement established');
+    expect(f.closedCount, 0, reason: 'the pooled connection stays open');
+    expect(pool.pooledConnectionCount, 1);
+    await pool.stop();
+  });
+
+  test('destroy() then close() has no further effect', () async {
+    final f = _Factory();
+    final pool = _pool(f, min: 1, max: 1);
+    await pool.start();
+    final c = await pool.connect();
+    c.destroy();
+    c.close(); //released before: no double release
+    await pumpEventQueue();
+    expect(f.created, 2, reason: 'exactly one replacement');
+    expect(f.closedCount, 1);
+    expect(pool.pooledConnectionCount, 1);
+    await pool.stop();
+  });
+
+  test('destroy() after stop() neither throws nor establishes', () async {
+    final f = _Factory();
+    final pool = _pool(f, min: 1, max: 1);
+    await pool.start();
+    final pc = pool.connections.first;
+    await pool.stop();
+    expect(f.created, 1);
+    pc.destroy(); //already removed by stop(): guard must skip replenish
+    await pumpEventQueue();
+    expect(f.created, 1, reason: 'no connection established after stop');
+    expect(pool.state, PoolState.stopped);
+  });
+
+  test('stop() right after destroy() drains cleanly', () async {
+    //the replenish kicked off by destroy() races stop(); either way the
+    //pool must end stopped with every physical connection closed
+    final f = _Factory();
+    final pool = _pool(f, min: 1, max: 1);
+    await pool.start();
+    final c = await pool.connect();
+    c.destroy();
+    await pool.stop();
+    expect(pool.state, PoolState.stopped);
+    expect(pool.pooledConnectionCount, 0);
+    expect(f.conns.every((c) => c.closed), isTrue,
+        reason: 'no physical connection may survive stop()');
+  });
+
+  test('heartbeat replenishes to minConnections', () async {
+    //a failed borrow test destroys the only conn without replenishing;
+    //the heartbeat (1s, via leakDetectionThreshold 3s) must refill to min
+    final f = _Factory(queryHangs: true);
+    final pool = _pool(f, min: 1, max: 2, testConnections: true,
+        connectionTimeout: const Duration(milliseconds: 1),
+        leakDetectionThreshold: const Duration(seconds: 3));
+    await pool.start();
+    await expectLater(pool.connect(), throwsA(anything));
+    await pumpEventQueue();
+    expect(pool.pooledConnectionCount, 0);
+    await Future.delayed(const Duration(milliseconds: 1500));
+    expect(pool.pooledConnectionCount, 1, reason: 'heartbeat refilled to min');
     await pool.stop();
   });
 

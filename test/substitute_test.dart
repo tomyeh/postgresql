@@ -7,16 +7,17 @@ void main() {
 
   group('Substitute by id', () {
     test('Substitute A', () {
-      var result = substitute("""'@id\\'@id'@id"@id" """,
+      //\' holds the string open only in E'...' (see the Strings group)
+      var result = substitute("""E'@id\\'@id'@id"@id" """,
           {'id': 20}, tc.encodeValue);
-      expect(result, equals(  """'@id\\'@id'20"@id" """));
+      expect(result, equals(  """E'@id\\'@id'20"@id" """));
     });
 
     test('Substitute B', () {
       final dd = r'$d$';
-      var result = substitute("""'@id\\'@id' $dd@id$dd @id"@id" """,
+      var result = substitute("""E'@id\\'@id' $dd@id$dd @id"@id" """,
           {'id': 20}, tc.encodeValue);
-      expect(result, equals(  """'@id\\'@id' $dd@id$dd 20"@id" """));
+      expect(result, equals(  """E'@id\\'@id' $dd@id$dd 20"@id" """));
     });
 
     test('Substitute C', () {
@@ -110,6 +111,17 @@ void main() {
       expect(substitute('a-b@x', {'x': 1}, enc), equals('a-b1'));
       expect(substitute('a/b @x', {'x': 1}, enc), equals('a/b 1'));
     });
+
+    test('trailing line comment (no newline)', () {
+      expect(substitute('@x --', {'x': 1}, enc), equals('1 --'));
+      expect(substitute('@x --@y', {'x': 1}, enc), equals('1 --@y'));
+    });
+
+    test('unterminated block comment', () {
+      expect(substitute('/* @y', {'x': 1}, enc), equals('/* @y'));
+      expect(substitute('@x /* /* @y */', {'x': 1}, enc),
+          equals('1 /* /* @y */')); //depth never reaches 0
+    });
   });
 
   group('Dollar quotes', () {
@@ -142,6 +154,69 @@ void main() {
 
     test('unterminated', () {
       expect(substitute(r'$$ @y', {'x': 1}, enc), equals(r'$$ @y'));
+    });
+
+    test('two dollar quotes in a row', () {
+      expect(substitute(r'$$ @a $$ @x $$ @b $$ @y', {'x': 1, 'y': 2}, enc),
+          equals(r'$$ @a $$ 1 $$ @b $$ 2'));
+    });
+  });
+
+  group('Strings', () {
+    final enc = (new TypeConverter() as DefaultTypeConverter).encodeValue;
+
+    test("backslash is literal in '...' (standard_conforming_strings)", () {
+      //the string closes at the quote right after the backslash
+      expect(substitute(r"'a\' @x", {'x': 1}, enc), equals(r"'a\' 1"));
+      expect(substitute(r"'\d+' @x", {'x': 1}, enc), equals(r"'\d+' 1"));
+    });
+
+    test("backslash escapes in E'...'", () {
+      //\' does not close: @y stays inside the string, @x follows it
+      expect(substitute(r"E'a\' @y' @x", {'x': 1}, enc),
+          equals(r"E'a\' @y' 1"));
+      expect(substitute(r"e'a\' @y' @x", {'x': 1}, enc),
+          equals(r"e'a\' @y' 1"));
+    });
+
+    test("identifier ending in e is not an E-string", () {
+      expect(substitute(r"else'a\' @x", {'x': 1}, enc),
+          equals(r"else'a\' 1"));
+    });
+
+    test('backslash is literal in "..."', () {
+      expect(substitute(r'"a\" @x', {'x': 1}, enc), equals(r'"a\" 1'));
+    });
+
+    test("doubled quote still spans", () {
+      //'' scans as close+reopen: @y stays inside, net effect is one string
+      expect(substitute(r"'it''s @y' @x", {'x': 1}, enc),
+          equals(r"'it''s @y' 1"));
+    });
+
+    test("E-string after punctuation", () {
+      //E preceded by a non-identifier char is still an E-string prefix
+      expect(substitute(r"(E'a\' @y')@x", {'x': 1}, enc),
+          equals(r"(E'a\' @y')1"));
+      expect(substitute(r"a=E'\' @y' @x", {'x': 1}, enc),
+          equals(r"a=E'\' @y' 1"));
+    });
+
+    test("empty and escaped-backslash E-strings", () {
+      expect(substitute(r"E'' @x", {'x': 1}, enc), equals(r"E'' 1"));
+      //\\ consumes both: the following quote closes
+      expect(substitute(r"E'\\' @x", {'x': 1}, enc), equals(r"E'\\' 1"));
+    });
+
+    test("backslash is literal in U&'...'", () {
+      //U&'s escape char introduces hex digits, it never escapes the quote
+      expect(substitute(r"U&'d\' @x", {'x': 1}, enc), equals(r"U&'d\' 1"));
+    });
+
+    test('adjacent strings', () {
+      //first string closes at \'; the second swallows @y
+      expect(substitute(r"'a\' '@y' @x", {'x': 1}, enc),
+          equals(r"'a\' '@y' 1"));
     });
 
 //    test('Substitute 13', () {

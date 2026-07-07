@@ -155,6 +155,7 @@ class _Scanner {
     final r = _r;
     final start = r.index;
     int? esc; //quote char when inside '...' or "..."
+    bool escBackslash = false; //E'...': backslash escapes the next char
     bool backslash = false;
 
     while (r.hasMore()) {
@@ -164,7 +165,7 @@ class _Scanner {
         backslash = false;
 
       } else if (esc != null) {
-        if (c == $backslash) backslash = true;
+        if (escBackslash && c == $backslash) backslash = true;
         else if (c == esc) esc = null;
 
       } else if (c == $at) {
@@ -175,6 +176,11 @@ class _Scanner {
 
       } else if (c == $single_quote || c == $quot) {
         esc = c;
+        //PG (standard_conforming_strings): backslash escapes only in E'...';
+        //literal in '...' and "..." ('' still works: scanned as close+reopen)
+        final p = r.peekBehind();
+        escBackslash = c == $single_quote && (p == $e || p == $E)
+            && !isIdentifier(r.peekBehind(2)); //`else'x\'` is not an E-string
 
       } else if (c == $dollar) { //dollar quote? (`$tag$...$tag$`; not `$1`)
         r.read();
@@ -255,6 +261,9 @@ class _CharReader {
 
   int read() => hasMore() ? _codes[_i++]: 0;
   int peek() => hasMore() ? _codes[_i]: 0;
+
+  /// The [n]-th char before the current position, or 0 if out of range.
+  int peekBehind([int n = 1]) => _i >= n ? _codes[_i - n]: 0;
 
   String substringFrom(int start) => _source.substring(start, _i);
 
