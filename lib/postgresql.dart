@@ -95,7 +95,7 @@ abstract class Connection {
   ///
   /// For example:
   ///
-  ///     conn.query("insert into foo_table values (@0, @1);", [a, b])
+  ///     conn.queryByList("insert into foo_table values (@0, @1);", [a, b])
   ///        .then(...);
   Stream<Row> queryByList(String sql, List values);
 

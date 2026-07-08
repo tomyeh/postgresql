@@ -277,8 +277,13 @@ abstract class PooledConnection {
   StackTrace? get stackTrace;
   
   pg.ConnectionState? get connectionState;
-  
+
   String get name;
+
+  /// Destroys the pooled connection: physically closes it, removes it
+  /// from the pool, and replenishes toward `minConnections`.
+  /// Safe to call multiple times (a second call is a no-op).
+  void destroy();
 }
 
 

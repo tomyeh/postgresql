@@ -141,6 +141,14 @@ class ConnectionImpl implements Connection {
     return hex.encode(digest.bytes);
   }
 
+  /// libpq's MD5 password response:
+  /// `'md5' + md5_hex(md5_hex(password + user) ++ salt)`.
+  /// Strings are hashed as UTF-8 bytes; [salt] is appended as raw bytes
+  /// (a salt byte >= 0x80 must not be UTF-8 encoded).
+  static String md5PasswordHash(String password, String user, List<int> salt)
+    => 'md5' + hex.encode(md5.convert(
+        utf8.encode(_md5s(password + user)) + salt).bytes);
+
   //TODO yuck - this needs a rewrite.
   static Future<SecureSocket> _connectSsl(Future<Socket> future) {
 
@@ -243,14 +251,13 @@ class ConnectionImpl implements Connection {
     }
     switch(authType) {
     case _AUTH_TYPE_MD5:
-      var bytes = _buffer.readBytes(4);
-      var salt = String.fromCharCodes(bytes);
-      var md5 = 'md5' + _md5s(_md5s(_password + _userName) + salt);
+      var salt = _buffer.readBytes(4);
+      var hash = md5PasswordHash(_password, _userName, salt);
       // Build message.
       var msg = MessageBuffer();
       msg.addByte(_MSG_PASSWORD);
       msg.addInt32(0);
-      msg.addUtf8String(md5);
+      msg.addUtf8String(hash);
       msg.setLength();
 
       _socket.add(msg.buffer);
