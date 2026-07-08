@@ -243,6 +243,16 @@ main() {
           equals([[1, 2], {'k': [true, null]}]));
       expect(tc.decode('{}', json), equals([]));
     });
+
+    test('unsupported arrays assert (multidim / dimension prefix)', () {
+      //multidimensional: outer braces match, nested brace is caught unquoted
+      expect(() => tc.decode('{{1,2},{3,4}}', int4), throwsA(isA<AssertionError>()));
+      expect(() => tc.decode('{{a},{b}}', text), throwsA(isA<AssertionError>()));
+      //non-default lower bound carries a [lo:hi]= dimension prefix
+      expect(() => tc.decode('[0:1]={5,6}', int4), throwsA(isA<AssertionError>()));
+      //a quoted element containing braces is NOT multidim (no false positive)
+      expect(tc.decode(r'{"{x}","{y}"}', text), equals(['{x}', '{y}']));
+    });
   });
 
   //TODO test bytea

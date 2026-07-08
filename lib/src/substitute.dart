@@ -43,10 +43,10 @@ String substitute(String source, Map? values,
 => _substitute(source, values == null ? _nullValueEncoder:
     _createMapValueEncoder(values, encodeValue), encodeValue);
 
-String substituteByList(String source, List? values,
+String substituteByList(String source, List values,
     String encodeValue(value, String? type))
-=> _substitute(source, values == null ? _nullValueEncoder:
-    _createListValueEncoder(values, encodeValue), encodeValue);
+=> _substitute(source, _createListValueEncoder(values, encodeValue),
+    encodeValue);
 
 String _substitute(String source, _ValueEncoder valueEncoder,
     String encodeValue(value, String? type)) {

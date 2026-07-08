@@ -151,6 +151,58 @@ void main() {
     await pool.stop();
   });
 
+  test('waiter gets a live connection when its pconn dies during handoff',
+      () async {
+    //simulates a 57P server-shutdown error landing in the microtask between
+    //handoff (reserved, completer fired) and the waiter resuming.
+    final f = _Factory();
+    final pool = _pool(f, min: 1, max: 1);
+    await pool.start();
+    final c1 = await pool.connect(); //saturates the pool (max 1)
+    final waiter = pool.connect(); //must queue
+    await pumpEventQueue();
+    expect(pool.waitQueueLength, 1);
+
+    c1.close(); //hands the freed conn to the waiter (reserved, not yet resumed)
+    //destroy it synchronously, before the waiter's await resumes
+    pool.connections
+        .firstWhere((c) => c.state == PooledConnectionState.reserved)
+        .destroy();
+
+    final c2 = await waiter.timeout(const Duration(seconds: 2),
+        onTimeout: () => throw StateError('waiter stranded by handoff race'));
+    expect(c2.state, ConnectionState.idle,
+        reason: 'waiter must receive a live connection, not the destroyed one');
+    c2.close();
+    await pool.stop();
+  });
+
+  test('handed-over conn dies silently (socket error): dropped, not stranded',
+      () async {
+    //unlike destroy(), a socket error closes the connection WITHOUT
+    //notifying the pool — the pconn must not leak a slot in `reserved`
+    final f = _Factory();
+    final pool = _pool(f, min: 1, max: 1);
+    await pool.start();
+    final c1 = await pool.connect();
+    final waiter = pool.connect(); //must queue
+    await pumpEventQueue();
+    c1.close(); //hands the freed conn to the waiter (reserved)
+    f.conns.single.destroy(); //the socket dies; the pool is not told
+
+    final c2 = await waiter.timeout(const Duration(seconds: 2),
+        onTimeout: () => throw StateError('waiter stranded by dead handoff'));
+    expect(c2.state, ConnectionState.idle);
+    expect(
+        pool.connections
+            .where((c) => c.state == PooledConnectionState.reserved),
+        isEmpty,
+        reason: 'the dead pconn must be reclaimed, not stranded in reserved');
+    expect(pool.pooledConnectionCount, 1);
+    c2.close();
+    await pool.stop();
+  });
+
   test('double destroy() of the same pooled connection replenishes once',
       () async {
     final f = _Factory();

@@ -310,10 +310,21 @@ class DefaultTypeConverter implements TypeConverter {
     return DateTime.parse(formattedValue).toLocal();
   }
 
-  /// Decodes an array value, [value]. Each item of it is [pgType].
+  /// Decodes an array value, [value], into a flat [List]. Each item is
+  /// decoded as [pgType].
+  ///
+  /// Limitations (only single-dimension, default-bound arrays are handled):
+  /// * Multidimensional arrays (e.g. `{{1,2},{3,4}}`) are not supported —
+  ///   they yield garbage or throw [FormatException].
+  /// * Arrays with a non-default lower bound carry a dimension prefix
+  ///   (e.g. `[0:1]={5,6}`), which is not supported.
+  ///
+  /// If you need either, cast the column to `text` in your query and parse
+  /// it yourself.
   decodeArray(String value, int pgType, {String? connectionName}) {
     final len = value.length - 2;
-    assert(value.codeUnitAt(0) == $lbrace && value.codeUnitAt(len + 1) == $rbrace);
+    assert(value.codeUnitAt(0) == $lbrace && value.codeUnitAt(len + 1) == $rbrace,
+        'Unsupported array (dimension prefix?): "$value".');
     if (len <= 0) return [];
     value = value.substring(1, len + 1);
 
@@ -346,6 +357,10 @@ class DefaultTypeConverter implements TypeConverter {
         for (int j = i;; ++j) {
           if (j >= len || value.codeUnitAt(j) == $comma) {
             final v = value.substring(i, j);
+            //PG quotes any element with a brace, so a brace here is a nested
+            //array delimiter (see [decodeArray] limitations).
+            assert(!v.contains('{') && !v.contains('}'),
+                'Multidimensional arrays are not supported: "$value".');
             result.add(v == 'NULL' ? null:
                 decodeValue(v, pgType, connectionName: connectionName));
             i = j;

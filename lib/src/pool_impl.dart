@@ -467,9 +467,18 @@ class PoolImpl implements Pool {
 
     timeoutException() => pg.PostgresqlException(
       'Obtaining connection from pool exceeded timeout: '
-        '${settings.connectionTimeout}.\nAlive connections: ${_connections.length}', 
+        '${settings.connectionTimeout}.\nAlive connections: ${_connections.length}',
             pconn?.name, exception: peConnectionTimeout);
-   
+
+    /// Destroys the bad [pconn] — even on the throw, or it is stranded in
+    /// `reserved`/`testing` forever — and retries while budget lasts.
+    Future<PooledConnectionImpl> dropAndRetry() {
+      _destroyConnection(pconn!);
+      final remaining = timeout - stopwatch.elapsed;
+      if (remaining <= Duration.zero) throw timeoutException();
+      return _connect(remaining);
+    }
+
     // If there are currently no available connections then
     // add the current connection request at the end of the
     // wait queue.
@@ -485,7 +494,15 @@ class PoolImpl implements Pool {
       } finally {
         _waitQueue.remove(waiting);
       }
-      assert(pconn.state == reserved);
+
+      // The pconn was `reserved` (pool state) when handed over, but before
+      // we resume, it can be destroyed (57P teardown, stop()) or its
+      // physical connection can die silently (socket error — which closes
+      // the connection but doesn't touch the pool state). Either way its
+      // connection (pg.ConnectionState) is no longer `idle`: drop it —
+      // nothing else reclaims a dead `reserved` conn.
+      if (pconn.connectionState != idle)
+        return dropAndRetry();
     }
 
     if (!settings.testConnections) {
@@ -494,16 +511,12 @@ class PoolImpl implements Pool {
     }
 
     pconn._state = testing;
-        
+
     if (await _testConnection(pconn, timeout - stopwatch.elapsed))
       return pconn;
 
     // Test failed. Drop this conn; if budget remains, try another.
-    _destroyConnection(pconn);
-      //before the throw — or the pconn is stranded in `testing` forever
-    final remaining = timeout - stopwatch.elapsed;
-    if (remaining <= Duration.zero) throw timeoutException();
-    return _connect(remaining);
+    return dropAndRetry();
   }
 
   /// Next available connection.
