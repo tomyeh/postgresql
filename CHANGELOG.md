@@ -1,17 +1,25 @@
+### Version 1.8.1
+
+* **md5 auth fix (regression in 1.8.0).** The salt is now hashed as raw bytes; 1.8.0 UTF-8-encoded it, failing ~15/16 of md5-auth attempts (SCRAM/trust unaffected).
+* Pool: double `destroy()` no longer establishes two replacements; the heartbeat replenishes to `minConnections` (e.g. after a DB outage); a connection that dies during hand-off to a waiter (57P shutdown, socket error) is dropped and the waiter gets another; `PooledConnection` now declares `destroy()`.
+* Substitution follows `standard_conforming_strings`: backslash escapes only inside `E'...'`; literal in `'...'`/`"..."`.
+* `queryByList`/`executeByList`/`substituteByList`: `values` is now a non-nullable `List` (use `query`/`execute` when there are none).
+* `decodeArray` documents its single-dimension/default-bound limitation and asserts on multidimensional or dimension-prefixed input (was: silently decoded garbage).
+
 ### Version 1.8.0
 
-* `Connection.destroy()` added — physically closes a pooled connection, so session state (e.g. a `SET`) won't leak to the next borrower. (Breaking for `Connection` implementers — hence the minor bump.)
-* Pool fixes: an external destroy re-establishes a connection and serves waiters (was: neither); a failed connection test no longer strands the connection in `testing` when the budget is exhausted; a failed `start()` ends in `startFailed` and destroys what it established (was: stuck in `starting`, sockets leaked); socket leak when a `connecting` entry is destroyed; `stop()` cancels the retry timer; dropped `_testConnection`'s unused `onTimeout` parameter.
-* Substitution: `@params` in `--` and nestable `/*...*/` comments are no longer substituted; dollar quotes match the exact `$tag$` terminator (was: count four `$`s), incl. non-ASCII tags.
-* Type converter: arrays with quoted elements (e.g. `timestamp[]`, `money[]`) decode correctly; `json[]` elements decode to values, consistent with scalar `json` (was: raw JSON source strings, and threw on NULL elements); typed `BigInt` no longer crashes.
+* `Connection.destroy()` added — physically closes a pooled connection so session state (e.g. a `SET`) won't leak to the next borrower. (Breaking for `Connection` implementers.)
+* Pool fixes: external destroy re-establishes and serves waiters; a failed connection test no longer strands the connection in `testing`; a failed `start()` ends in `startFailed` and destroys what it established (was: stuck in `starting`, leaking sockets); socket leak on destroy of a `connecting` entry; `stop()` cancels the retry timer; dropped `_testConnection`'s unused `onTimeout` parameter.
+* Substitution: `@params` in `--`/`/*...*/` comments are no longer substituted; dollar quotes match the exact `$tag$` terminator, incl. non-ASCII tags.
+* Type converter: arrays with quoted elements (`timestamp[]`, `money[]`…) decode correctly; `json[]` elements decode to values (consistent with scalar `json`); typed `BigInt` no longer crashes.
 * md5 auth hashes UTF-8 bytes (was UTF-16 code units — wrong for non-ASCII credentials).
-* `close()` bounds the terminate-flush wait (5s), swallows its error, and destroys the socket even when sending Terminate throws — no leak nor unhandled async error on a dead peer.
+* `close()` bounds the terminate-flush wait (5s) and destroys the socket even when Terminate throws.
 
 ### Version 1.7.2
 
-* Bug fixes from code review: connection-hang scenarios (pending-queries leak on `close`, socket error, PG admin shutdown); auth-phase timeout (`connectionTimeout` now bounds the postgres handshake, not just the socket); `runInTransaction` rollback no longer hides the original exception; `_establishConnectionSafely`'s retry loop actually retries now; `Pool.testConnections` retry condition was inverted; smaller correctness fixes (`Buffer.readUtf8String` maxSize, `_handleSocketError` parameter shadowing, `Settings.toUri` query string, `peConnectionFailed` 40004→4004, `ConnectionDecorator.runInTransaction` double-throw).
-* `Message.message` / `ServerMessage.message`: nullable → non-nullable (impls always set it).
-* Doc/style cleanup (drop `new`, `/** */` → `///`, unify CHANGELOG headers); deleted unused `lib/src/protocol.dart`.
+* Connection-hang fixes: pending-queries leak on `close`/socket error/PG admin shutdown; `connectionTimeout` now bounds the handshake, not just the socket; `runInTransaction` rollback no longer hides the original exception; `_establishConnectionSafely`'s retry loop actually retries; `Pool.testConnections` retry condition was inverted.
+* Smaller fixes: `Buffer.readUtf8String` maxSize, `_handleSocketError` parameter shadowing, `Settings.toUri` query string, `peConnectionFailed` 40004→4004, `ConnectionDecorator.runInTransaction` double-throw.
+* `Message.message`/`ServerMessage.message`: nullable → non-nullable. Doc/style cleanup; deleted unused `lib/src/protocol.dart`.
 
 ### Version 1.7.0
 
