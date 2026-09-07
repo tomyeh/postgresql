@@ -1,3 +1,7 @@
+### Version 1.8.2
+
+* Type converter: a `json`/`jsonb` column holding the JSON scalar `null` (e.g. `col->2` on a null element) decodes to `null` (was: `type 'Null' is not a subtype of type 'Object'` thrown mid-row, which also left the caller hanging on a destroyed connection). `TypeConverter.decode` now returns `Object?`. (Callers relying on a non-null result must adapt; implementers are unaffected.)
+
 ### Version 1.8.1
 
 * **md5 auth fix (regression in 1.8.0).** The salt is now hashed as raw bytes; 1.8.0 UTF-8-encoded it, failing ~15/16 of md5-auth attempts (SCRAM/trust unaffected).
