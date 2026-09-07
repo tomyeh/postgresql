@@ -302,7 +302,9 @@ abstract class TypeConverter {
   String encode(value, String? type, {String? connectionName});
 
   /// Convert a string recieved from the database into a dart object.
-  Object decode(String value, int pgType, {String? connectionName});
+  /// Null if it decodes to null, e.g. the json scalar `null` (a SQL null
+  /// never gets here).
+  Object? decode(String value, int pgType, {String? connectionName});
 }
 
 

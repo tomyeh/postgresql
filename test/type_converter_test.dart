@@ -151,6 +151,24 @@ main() {
     expect(tc.encode(BigInt.two, 'numeric'), equals('2'));
   });
 
+  group('decode json scalar', () {
+    const json = 114, jsonb = 3802; //pg type oids (see constants.dart)
+    var tc = new TypeConverter();
+
+    test('a json null is a Dart null, not an error', () {
+      //a non-null column holding the json scalar `null`, e.g. `"col"->2` on a
+      //null element; a SQL NULL never reaches decode (colSize == -1)
+      expect(tc.decode('null', json), isNull);
+      expect(tc.decode('null', jsonb), isNull);
+    });
+
+    test('other scalars decode to values', () {
+      expect(tc.decode('5', json), equals(5));
+      expect(tc.decode('"abc"', jsonb), equals('abc'));
+      expect(tc.decode('{"a": [1, null]}', json), equals({'a': [1, null]}));
+    });
+  });
+
   group('decode array (_parseArray)', () {
     //pg type array oids (see constants.dart)
     const text = 1009, varchar = 1015, int4 = 1007, int8 = 1016,
